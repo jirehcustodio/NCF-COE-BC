@@ -1,0 +1,75 @@
+/* ============================================================
+   NCF Blockchain Grade Recording System — Global Styles
+   College of Engineering
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Brand */
+  --primary:        #820000;
+  --primary-mid:    #6b0000;
+  --primary-light:  #a11a1a;
+  --primary-pale:   #fdecec;
+  --primary-border: #f3b7b7;
+
+  /* Semantic */
+  --green:         #3b6d11;
+  --green-pale:    #eaf3de;
+  --green-border:  #c0dd97;
+  --amber:         #854f0b;
+  --amber-pale:    #faeeda;
+  --amber-border:  #fac775;
+  --purple:        #3c3489;
+  --purple-pale:   #eeedfe;
+  --purple-border: #afa9ec;
+  --red:           #a32d2d;
+  --red-pale:      #fcebeb;
+  --red-border:    #f7c1c1;
+
+  /* Layout */
+  --sidebar-w: 224px;
+
+  /* Surfaces */
+  --bg:         #f3f5f8;
+  --bg-card:    #ffffff;
+  --bg-surface: #f8f9fb;
+
+  /* Text */
+  --text:   #1a1d23;
+  --text-2: #5a6072;
+  --text-3: #9198aa;
+
+  /* Borders */
+  --border:   rgba(0,0,0,0.09);
+  --border-2: rgba(0,0,0,0.06);
+
+  /* Typography */
+  --font: 'IBM Plex Sans', -apple-system, sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+
+  /* Shape */
+  --radius:    8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+button { font-family: var(--font); cursor: pointer; }
+input, select, textarea { font-family: var(--font); }
+a { color: inherit; text-decoration: none; }

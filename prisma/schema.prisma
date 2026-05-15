@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  INSTRUCTOR
+  VIEWER
+}
+
+enum GradePeriod {
+  PRELIM
+  MIDTERM
+  SEMI_FINAL
+  FINAL
+}
+
+enum GradeStatus {
+  DRAFT
+  SUBMITTED
+  CHAINED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String
+  passwordHash String
+  role         Role          @default(INSTRUCTOR)
+  departmentId String?
+  department   Department?   @relation(fields: [departmentId], references: [id])
+  subjects     Subject[]
+  grades       GradeRecord[]
+  blocks       BlockchainRecord[]
+  submissions  SubmissionLog[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Department {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  name      String
+  students  Student[]
+  subjects  Subject[]
+  faculty   User[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Subject {
+  id           String        @id @default(cuid())
+  code         String
+  title        String
+  departmentId String
+  instructorId String
+  department   Department   @relation(fields: [departmentId], references: [id])
+  instructor   User         @relation(fields: [instructorId], references: [id])
+  grades       GradeRecord[]
+  blocks       BlockchainRecord[]
+  submissions  SubmissionLog[]
+
+  @@unique([code, instructorId])
+}
+
+model Student {
+  id           String        @id @default(cuid())
+  studentNo    String        @unique
+  name         String
+  departmentId String
+  department   Department   @relation(fields: [departmentId], references: [id])
+  grades       GradeRecord[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model GradeRecord {
+  id           String            @id @default(cuid())
+  studentId    String
+  subjectId    String
+  instructorId String
+  period       GradePeriod
+  grade        Int
+  status       GradeStatus       @default(DRAFT)
+  payloadHash  String
+  blockId      String?
+  student      Student           @relation(fields: [studentId], references: [id])
+  subject      Subject           @relation(fields: [subjectId], references: [id])
+  instructor   User              @relation(fields: [instructorId], references: [id])
+  block        BlockchainRecord? @relation(fields: [blockId], references: [id])
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@unique([studentId, subjectId, period])
+}
+
+model BlockchainRecord {
+  id           String        @id @default(cuid())
+  blockNumber  Int
+  blockHash    String
+  previousHash String
+  payloadHash  String
+  period       GradePeriod
+  subjectId    String
+  instructorId String
+  count        Int
+  chainProvider String?
+  chainTxHash   String?
+  chainStatus   String?
+  createdAt    DateTime      @default(now())
+  subject      Subject       @relation(fields: [subjectId], references: [id])
+  instructor   User          @relation(fields: [instructorId], references: [id])
+  grades       GradeRecord[]
+}
+
+model SubmissionLog {
+  id           String      @id @default(cuid())
+  instructorId String
+  subjectId    String
+  period       GradePeriod
+  action       String
+  metadata     Json
+  createdAt    DateTime    @default(now())
+  instructor   User        @relation(fields: [instructorId], references: [id])
+  subject      Subject     @relation(fields: [subjectId], references: [id])
+}

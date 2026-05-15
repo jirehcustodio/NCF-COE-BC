@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NCF — Blockchain Grade Recording System</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* =============================================
+   NCF Blockchain Grade Recording System
+   College of Engineering
+   ============================================= */
+
+:root {
+  --primary: #042c53;
+  --primary-mid: #0c447c;
+  --primary-light: #185fa5;
+  --primary-pale: #e6f1fb;
+  --primary-border: #b5d4f4;
+  --green: #3b6d11;
+  --green-pale: #eaf3de;
+  --green-border: #c0dd97;
+  --amber: #854f0b;
+  --amber-pale: #faeeda;
+  --amber-border: #fac775;
+  --purple: #3c3489;
+  --purple-pale: #eeedfe;
+  --purple-border: #afa9ec;
+  --red: #a32d2d;
+  --red-pale: #fcebeb;
+  --red-border: #f7c1c1;
+  --bg: #f4f5f7;
+  --bg-card: #ffffff;
+  --bg-surface: #f8f9fb;
+  --text: #1a1d23;
+  --text-2: #5a6072;
+  --text-3: #9198aa;
+  --border: rgba(0,0,0,0.1);
+  --border-2: rgba(0,0,0,0.07);
+  --font: 'IBM Plex Sans', sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --sidebar-w: 220px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: var(--font); font-size: 13px; background: var(--bg); color: var(--text); line-height: 1.5; }
+
+/* ---- LAYOUT ---- */
+.layout { display: flex; min-height: 100vh; }
+
+/* ---- SIDEBAR ---- */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--primary);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 50;
+  overflow-y: auto;
+}
+.sb-logo {
+  padding: 20px 16px 14px;
+  border-bottom: 0.5px solid rgba(255,255,255,0.1);
+}
+.sb-logo .sys {
+  font-size: 10px; color: rgba(255,255,255,0.4);
+  letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px;
+}
+.sb-logo .org { font-size: 13px; font-weight: 600; color: #fff; line-height: 1.35; }
+.sb-logo .version { font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 4px; }
+
+.sb-user {
+  padding: 12px 16px;
+  border-bottom: 0.5px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; gap: 10px;
+}
+.av {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: #fff; flex-shrink: 0;
+}
+.av.dean { background: var(--primary-light); }
+.av.prof { background: #0f6e56; }
+.sb-name { font-size: 12px; font-weight: 500; color: #fff; }
+.sb-role { font-size: 10px; color: rgba(255,255,255,0.45); }
+
+.nav-sec { padding: 10px 0 4px; }
+.nav-lbl {
+  font-size: 10px; color: rgba(255,255,255,0.3);
+  letter-spacing: .08em; text-transform: uppercase;
+  padding: 0 16px 4px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; font-size: 12px; color: rgba(255,255,255,0.6);
+  cursor: pointer; border-left: 2px solid transparent;
+  transition: all .15s; user-select: none;
+}
+.nav-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+.nav-item.active { background: rgba(255,255,255,0.1); color: #fff; border-left-color: #85b7eb; }
+.nav-item i { font-size: 15px; flex-shrink: 0; }
+
+.role-sw {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 0.5px solid rgba(255,255,255,0.1);
+}
+.role-sw .lbl { font-size: 10px; color: rgba(255,255,255,0.35); margin-bottom: 8px; }
+.role-btns { display: flex; gap: 4px; }
+.rb {
+  flex: 1; padding: 6px 4px; font-size: 11px;
+  border-radius: var(--radius); border: 0.5px solid rgba(255,255,255,0.2);
+  background: transparent; color: rgba(255,255,255,0.6);
+  cursor: pointer; font-family: var(--font); transition: all .15s;
+}
+.rb:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.rb.active { background: var(--primary-light); color: #fff; border-color: var(--primary-light); }
+
+/* ---- MAIN ---- */
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1; padding: 24px;
+  min-height: 100vh;
+}
+
+/* ---- PAGE ---- */
+.page { display: none; }
+.page.active { display: block; }
+.ph { margin-bottom: 20px; }
+.ph h2 { font-size: 18px; font-weight: 600; color: var(--text); }
+.ph p { font-size: 12px; color: var(--text-2); margin-top: 3px; }
+
+/* ---- STAT CARDS ---- */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+.sc {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border-2);
+  border-radius: var(--radius-lg); padding: 14px 16px;
+}
+.sc .sl { font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+.sc .sv { font-size: 24px; font-weight: 600; color: var(--text); }
+.sc .ss { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.sc.blue .sv { color: var(--primary-light); }
+.sc.green .sv { color: var(--green); }
+.sc.amber .sv { color: var(--amber); }
+.sc.purple .sv { color: var(--purple); }
+
+/* ---- CARDS ---- */
+.card {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border-2);
+  border-radius: var(--radius-lg); padding: 16px;
+  margin-bottom: 16px;
+}
+.ch {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.ct { font-size: 13px; font-weight: 600; color: var(--text); }
+
+/* ---- BUTTONS ---- */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border: 0.5px solid var(--border);
+  border-radius: var(--radius); font-size: 12px; cursor: pointer;
+  background: var(--bg-card); color: var(--text);
+  transition: all .15s; font-family: var(--font); font-weight: 500;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--bg-surface); }
+.btn.pri { background: var(--primary-light); color: #fff; border-color: var(--primary-light); }
+.btn.pri:hover { background: var(--primary-mid); }
+.btn.suc { background: var(--green); color: #fff; border-color: var(--green); }
+.btn.suc:hover { background: #2d5309; }
+.btn.warn { background: var(--amber); color: #fff; border-color: var(--amber); }
+.btn.sm { padding: 5px 10px; font-size: 11px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---- TABLE ---- */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th {
+  text-align: left; padding: 8px 10px;
+  font-size: 10px; font-weight: 600; color: var(--text-3);
+  border-bottom: 0.5px solid var(--border); text-transform: uppercase;
+  letter-spacing: .06em; white-space: nowrap;
+}
+td {
+  padding: 9px 10px; border-bottom: 0.5px solid var(--border-2);
+  color: var(--text); vertical-align: middle; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; max-width: 160px;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg-surface); }
+
+/* ---- BADGES ---- */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 99px;
+  white-space: nowrap;
+}
+.badge.chain { background: var(--purple-pale); color: var(--purple); }
+.badge.ok    { background: var(--green-pale);  color: var(--green);  }
+.badge.pend  { background: var(--amber-pale);  color: var(--amber);  }
+.badge.info  { background: var(--primary-pale); color: var(--primary-mid); }
+.badge.err   { background: var(--red-pale);    color: var(--red);    }
+
+/* ---- HASH TEXT ---- */
+.hash { font-family: var(--mono); font-size: 10px; color: var(--text-3); }
+
+/* ---- SEARCH ROW ---- */
+.search-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.search-row input,
+.search-row select {
+  padding: 7px 10px; border: 0.5px solid var(--border);
+  border-radius: var(--radius); font-size: 12px;
+  background: var(--bg-card); color: var(--text);
+  font-family: var(--font);
+}
+.search-row input { flex: 1; min-width: 160px; }
+.search-row input:focus, .search-row select:focus { outline: none; border-color: var(--primary-light); }
+
+/* ---- FORM ---- */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.fg { margin-bottom: 12px; }
+.fg label { display: block; font-size: 11px; font-weight: 600; color: var(--text-2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .05em; }
+.fg input, .fg select, .fg textarea {
+  width: 100%; padding: 8px 10px; border: 0.5px solid var(--border);
+  border-radius: var(--radius); font-size: 12px; font-family: var(--font);
+  background: var(--bg-card); color: var(--text);
+  transition: border-color .15s;
+}
+.fg input:focus, .fg select:focus { outline: none; border-color: var(--primary-light); }
+
+/* ---- UPLOAD ZONE ---- */
+.uz {
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-lg); padding: 28px 20px;
+  text-align: center; cursor: pointer;
+  transition: all .2s; background: var(--bg-surface);
+  margin-bottom: 12px;
+}
+.uz:hover, .uz.drag {
+  border-color: var(--primary-light);
+  background: var(--primary-pale);
+}
+.uz i { font-size: 30px; color: var(--text-3); display: block; margin-bottom: 8px; }
+.uz .ut { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.uz .us { font-size: 11px; color: var(--text-2); margin-bottom: 10px; }
+.file-tags { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.ftag {
+  background: var(--bg-card); border: 0.5px solid var(--border);
+  border-radius: 99px; padding: 2px 9px; font-size: 10px;
+  color: var(--text-2); display: inline-flex; align-items: center; gap: 4px;
+}
+
+/* ---- NOTICES ---- */
+.notice {
+  border-radius: var(--radius); padding: 10px 14px;
+  font-size: 12px; display: flex; align-items: flex-start;
+  gap: 8px; margin-bottom: 10px;
+}
+.notice i { flex-shrink: 0; margin-top: 1px; }
+.notice.info   { background: var(--primary-pale); border: 0.5px solid var(--primary-border); color: var(--primary-mid); }
+.notice.warn   { background: var(--amber-pale);   border: 0.5px solid var(--amber-border);   color: var(--amber); }
+.notice.lock   { background: var(--purple-pale);  border: 0.5px solid var(--purple-border);  color: var(--purple); }
+.notice.suc    { background: var(--green-pale);   border: 0.5px solid var(--green-border);   color: var(--green); }
+.notice.err    { background: var(--red-pale);     border: 0.5px solid var(--red-border);     color: var(--red); }
+
+/* ---- LOG ---- */
+.log-entry {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 0; border-bottom: 0.5px solid var(--border-2);
+  font-size: 12px;
+}
+.log-entry:last-child { border-bottom: none; }
+.dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 3px; flex-shrink: 0; }
+.dot.g { background: #639922; }
+.dot.b { background: var(--primary-light); }
+.dot.a { background: #ba7517; }
+.lt { color: var(--text-3); min-width: 82px; font-size: 11px; flex-shrink: 0; }
+.ld { color: var(--text); flex: 1; }
+.la { color: var(--text-3); font-size: 11px; min-width: 90px; text-align: right; flex-shrink: 0; }
+
+/* ---- BLOCKCHAIN BLOCKS ---- */
+.block-chain { position: relative; padding-left: 24px; }
+.block-chain::before {
+  content: ''; position: absolute; left: 10px; top: 0; bottom: 0;
+  width: 1px; background: var(--border);
+}
+.bb {
+  background: var(--bg-card); border: 0.5px solid var(--border-2);
+  border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 10px;
+  position: relative;
+}
+.bb::before {
+  content: ''; position: absolute; left: -14px; top: 50%;
+  transform: translateY(-50%); width: 8px; height: 8px;
+  border-radius: 50%; background: var(--purple-pale);
+  border: 2px solid var(--purple);
+}
+.bh { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.bnum { font-size: 12px; font-weight: 600; color: var(--text); }
+.bhash { font-family: var(--mono); font-size: 10px; color: var(--primary-light); }
+.block-meta { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; font-size: 11px; margin-top: 8px; }
+.block-meta span { color: var(--text-3); }
+
+/* ---- STEP LAYOUT ---- */
+.step-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ---- GRADE INPUT IN TABLE ---- */
+.grade-input {
+  width: 48px; padding: 4px 6px; border: 0.5px solid var(--border);
+  border-radius: var(--radius); font-size: 12px; font-family: var(--font);
+  background: var(--bg-surface); color: var(--text); text-align: center;
+}
+.grade-input:focus { outline: none; border-color: var(--primary-light); }
+
+/* ---- ISO NOTICE ---- */
+.iso-box {
+  text-align: center; padding: 32px 20px;
+  color: var(--text-2); font-size: 13px;
+}
+.iso-box i { font-size: 32px; display: block; margin-bottom: 10px; color: var(--text-3); }
+
+/* ---- MODAL ---- */
+.modal-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(10,20,40,0.5); z-index: 200;
+  align-items: center; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: var(--bg-card); border-radius: var(--radius-lg);
+  padding: 24px; width: 460px; max-width: 95vw;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+}
+.modal-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.modal-hdr h3 { font-size: 16px; font-weight: 600; color: var(--text); }
+.close-btn { background: none; border: none; cursor: pointer; color: var(--text-3); font-size: 20px; }
+.modal-meta { background: var(--bg-surface); border-radius: var(--radius); padding: 12px 14px; font-size: 12px; }
+.modal-meta .row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 0.5px solid var(--border-2); }
+.modal-meta .row:last-child { border-bottom: none; }
+.modal-meta .row span:first-child { color: var(--text-3); }
+.modal-meta .row span:last-child { font-weight: 500; color: var(--text); }
+.modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+
+/* ---- SCROLLBAR ---- */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 900px) {
+  .sidebar { width: 180px; }
+  .main { margin-left: 180px; padding: 16px; }
+  .stats { grid-template-columns: repeat(2,1fr); }
+  .step-row { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <div class="sidebar">
+    <div class="sb-logo">
+      <div class="sys">NCF · College of Engineering</div>
+      <div class="org">Blockchain Grade<br>Recording System</div>
+      <div class="version">v1.0 Prototype</div>
+    </div>
+    <div class="sb-user">
+      <div class="av" id="avEl">D</div>
+      <div>
+        <div class="sb-name" id="unEl">Dr. Santos</div>
+        <div class="sb-role" id="urEl">Dean — Full Access</div>
+      </div>
+    </div>
+    <div id="navEl"></div>
+    <div class="role-sw">
+      <div class="lbl">Switch account (prototype demo)</div>
+      <div class="role-btns">
+        <button class="rb active" id="rb-dean"  onclick="setRole('dean')">Dean</button>
+        <button class="rb"        id="rb-reyes" onclick="setRole('reyes')">E. Reyes</button>
+        <button class="rb"        id="rb-lim"   onclick="setRole('lim')">E. Lim</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main" id="mainEl"></div>
+</div>
+
+<!-- ===================== SUCCESS MODAL ===================== -->
+<div class="modal-bg" id="successModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3>&#10003; Committed to Blockchain</h3>
+      <button class="close-btn" onclick="closeModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">
+      Grades have been cryptographically hashed and permanently written to the blockchain.
+      This record is <strong style="color:var(--text)">immutable and irreversible</strong>.
+    </p>
+    <div class="modal-meta">
+      <div class="row"><span>Block #</span><span id="mBlock"></span></div>
+      <div class="row"><span>Transaction Hash</span><span id="mHash" style="font-family:var(--mono);font-size:10px"></span></div>
+      <div class="row"><span>Timestamp</span><span id="mTime"></span></div>
+      <div class="row"><span>Subject</span><span id="mSubj"></span></div>
+      <div class="row"><span>Students recorded</span><span id="mCount"></span></div>
+      <div class="row"><span>Submitted by</span><span id="mBy"></span></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn pri" onclick="closeModal();showPage('ledger')"><i class="ti ti-link"></i> View on Ledger</button>
+      <button class="btn" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =============================================
+   DATA & STATE
+   ============================================= */
+
+const ROLES = {
+  dean: {
+    name: 'Dr. Santos', role: 'Dean — Full Access',
+    av: 'D', type: 'dean', color: 'dean'
+  },
+  reyes: {
+    name: 'Engr. Reyes', role: 'Instructor — Civil Engr.',
+    av: 'ER', type: 'prof', color: 'prof',
+    dept: 'Civil Engineering', subjects: ['CE 401', 'CE 301']
+  },
+  lim: {
+    name: 'Engr. Lim', role: 'Instructor — Electrical Engr.',
+    av: 'EL', type: 'prof', color: 'prof',
+    dept: 'Electrical Engineering', subjects: ['EE 301']
+  }
+};
+
+/* ----- NAVIGATION ----- */
+const DEAN_NAV = [
+  { sec: 'Overview', items: [
+    { id: 'dashboard',    icon: 'ti-layout-dashboard', label: 'Dashboard' },
+    { id: 'allgrades',   icon: 'ti-table',             label: 'All Grade Records' },
+    { id: 'allstudents', icon: 'ti-users',              label: 'All Student Lists' }
+  ]},
+  { sec: 'Blockchain', items: [
+    { id: 'ledger', icon: 'ti-link',         label: 'Blockchain Ledger' },
+    { id: 'verify', icon: 'ti-shield-check', label: 'Verify Grade' }
+  ]},
+  { sec: 'Admin', items: [
+    { id: 'submissions', icon: 'ti-clipboard-check', label: 'Submissions Log' },
+    { id: 'instructors', icon: 'ti-user-check',      label: 'Instructors' }
+  ]}
+];
+
+const PROF_NAV = [
+  { sec: 'My Workspace', items: [
+    { id: 'mystudents',    icon: 'ti-users',            label: 'My Student List' },
+    { id: 'upload',        icon: 'ti-upload',           label: 'Upload Grades' },
+    { id: 'mysubmissions', icon: 'ti-clipboard-check',  label: 'My Submissions' }
+  ]},
+  { sec: 'Blockchain', items: [
+    { id: 'mychain', icon: 'ti-link',         label: 'My Chain Records' },
+    { id: 'verify',  icon: 'ti-shield-check', label: 'Verify Grade' }
+  ]}
+];
+
+/* ----- STUDENT DATA ----- */
+// NOTE: Replace this array with your real database/API data.
+let students = [
+  { id:'NCF-2021-0042', name:'Ana dela Cruz',   dept:'Civil Engineering',       subj:'CE 401', prof:'reyes', prelim:85, midterm:88, semi:90, final:87, status:'chain',  uploadMethod:'Word (.docx)' },
+  { id:'NCF-2021-0055', name:'Bjorn Santos',    dept:'Civil Engineering',       subj:'CE 401', prof:'reyes', prelim:78, midterm:82, semi:80, final:83, status:'chain',  uploadMethod:'Word (.docx)' },
+  { id:'NCF-2021-0099', name:'Hector Manalo',   dept:'Civil Engineering',       subj:'CE 301', prof:'reyes', prelim:72, midterm:75, semi:74, final:73, status:'chain',  uploadMethod:'Excel (.xlsx)' },
+  { id:'NCF-2022-0011', name:'Carla Reyes',     dept:'Electrical Engineering',  subj:'EE 301', prof:'lim',   prelim:91, midterm:89, semi:93, final:90, status:'chain',  uploadMethod:'Photo (OCR)' },
+  { id:'NCF-2022-0033', name:'Diego Lim',       dept:'Electrical Engineering',  subj:'EE 301', prof:'lim',   prelim:74, midterm:76, semi:78, final:75, status:'ok',     uploadMethod:'Photo (OCR)' },
+  { id:'NCF-2023-0004', name:'Felix Gomez',     dept:'Civil Engineering',       subj:'CE 401', prof:'reyes', prelim:95, midterm:93, semi:97, final:96, status:'chain',  uploadMethod:'CSV' },
+  { id:'NCF-2023-0009', name:'Grace Tan',       dept:'Electrical Engineering',  subj:'EE 301', prof:'lim',   prelim:80, midterm:83, semi:81, final:84, status:'pend',   uploadMethod:'—' },
+  { id:'NCF-2023-0015', name:'Ivan Cruz',       dept:'Civil Engineering',       subj:'CE 301', prof:'reyes', prelim:77, midterm:80, semi:79, final:81, status:'ok',     uploadMethod:'Excel (.xlsx)' },
+  { id:'NCF-2023-0021', name:'Jasmine Bautista',dept:'Electrical Engineering',  subj:'EE 301', prof:'lim',   prelim:88, midterm:85, semi:87, final:89, status:'ok',     uploadMethod:'CSV' },
+  { id:'NCF-2022-0047', name:'Kevin Torres',    dept:'Civil Engineering',       subj:'CE 401', prof:'reyes', prelim:70, midterm:73, semi:71, final:72, status:'pend',   uploadMethod:'—' },
+];
+
+/* ----- BLOCKCHAIN DATA ----- */
+// NOTE: Connect this to your actual blockchain (e.g. Ethereum/Hyperledger) in production.
+let blocks = [
+  { num:1045, hash:'0xa3f8...c221', prev:'0x9e1d...b104', time:'Nov 10, 2025 09:14', prof:'reyes', subj:'CE 401', period:'Final',   count:3 },
+  { num:1046, hash:'0xb7c2...d449', prev:'0xa3f8...c221', time:'Nov 10, 2025 10:22', prof:'lim',   subj:'EE 301', period:'Midterm',  count:2 },
+  { num:1047, hash:'0xd9a1...e882', prev:'0xb7c2...d449', time:'Nov 11, 2025 08:05', prof:'reyes', subj:'CE 301', period:'Prelim',   count:2 },
+  { num:1048, hash:'0xf2b3...1a77', prev:'0xd9a1...e882', time:'Nov 12, 2025 11:30', prof:'lim',   subj:'EE 301', period:'Final',    count:3 },
+];
+
+/* ----- ACTIVITY LOGS ----- */
+let logs = [
+  { time:'Nov 12, 11:30', dot:'g', desc:'Engr. Lim committed EE 301 Final grades (3 students) — Block #1048',               prof:'lim'   },
+  { time:'Nov 12, 10:05', dot:'b', desc:'Engr. Reyes uploaded CE 301 student list via Excel (.xlsx) — 2 entries imported',   prof:'reyes' },
+  { time:'Nov 11, 08:05', dot:'g', desc:'Engr. Reyes committed CE 301 Prelim grades — Block #1047',                          prof:'reyes' },
+  { time:'Nov 10, 10:22', dot:'g', desc:'Engr. Lim committed EE 301 Midterm grades (2 students) — Block #1046',              prof:'lim'   },
+  { time:'Nov 10, 09:55', dot:'b', desc:'Engr. Lim uploaded EE 301 student list via photo scan (OCR) — 3 entries detected',  prof:'lim'   },
+  { time:'Nov 10, 09:14', dot:'g', desc:'Engr. Reyes committed CE 401 Final grades (3 students) — Block #1045',              prof:'reyes' },
+  { time:'Nov 09, 14:02', dot:'b', desc:'Engr. Reyes uploaded CE 401 student list via Word (.docx) — 4 entries imported',    prof:'reyes' },
+];
+
+/* ----- APP STATE ----- */
+let curRole     = 'dean';
+let nextBlock   = 1049;
+let uploadState = { list: false, grade: false };
+
+/* =============================================
+   UTILITY FUNCTIONS
+   ============================================= */
+
+function statusBadge(st) {
+  if (st === 'chain') return '<span class="badge chain"><i class="ti ti-lock"></i> On chain</span>';
+  if (st === 'ok')    return '<span class="badge ok"><i class="ti ti-check"></i> Uploaded</span>';
+  return '<span class="badge pend"><i class="ti ti-clock"></i> Pending</span>';
+}
+
+function uploadMethodBadge(m) {
+  if (!m || m === '—') return '<span style="color:var(--text-3)">—</span>';
+  const icon = m.includes('OCR') ? 'ti-photo' : m.includes('xlsx') || m.includes('Excel') ? 'ti-table' :
+               m.includes('docx') || m.includes('Word') ? 'ti-file-word' : m.includes('CSV') ? 'ti-file-spreadsheet' : 'ti-file';
+  return `<span class="badge info"><i class="ti ${icon}"></i> ${m}</span>`;
+}
+
+function genHash() {
+  return '0x' + Math.random().toString(16).slice(2,6) + '...' + Math.random().toString(16).slice(2,6);
+}
+
+function nowStr() {
+  return new Date().toLocaleString('en-PH', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function rd(role) { return ROLES[role]; }
+
+/* =============================================
+   ROLE SWITCHING
+   ============================================= */
+
+function setRole(r) {
+  curRole = r;
+  ['dean','reyes','lim'].forEach(k => {
+    const btn = document.getElementById('rb-' + (k === 'reyes' ? 'reyes' : k === 'lim' ? 'lim' : 'dean'));
+    if (btn) btn.classList.remove('active');
+  });
+  const activeBtn = document.getElementById('rb-' + (r === 'dean' ? 'dean' : r === 'reyes' ? 'reyes' : 'lim'));
+  if (activeBtn) activeBtn.classList.add('active');
+
+  const data = ROLES[r];
+  const av = document.getElementById('avEl');
+  if (av) {
+    av.textContent = data.av;
+    av.className = 'av ' + data.color;
+  }
+  const nameEl = document.getElementById('unEl');
+  if (nameEl) nameEl.textContent = data.name;
+  const roleEl = document.getElementById('urEl');
+  if (roleEl) roleEl.textContent = data.role;
+
+  uploadState = { list: false, grade: false };
+  renderNav();
+  showPage(data.type === 'dean' ? 'dashboard' : 'mystudents');
+}
+
+/* =============================================
+   NAVIGATION
+   ============================================= */
+
+function renderNav() {
+  const nav = ROLES[curRole].type === 'dean' ? DEAN_NAV : PROF_NAV;
+  document.getElementById('navEl').innerHTML = nav.map(sec => `
+    <div class="nav-sec">
+      <div class="nav-lbl">${sec.sec}</div>
+      ${sec.items.map(item => `
+        <div class="nav-item" data-page="${item.id}" onclick="showPage('${item.id}')">
+          <i class="ti ${item.icon}"></i>${item.label}
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function showPage(id) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const el = document.querySelector(`[data-page="${id}"]`);
+  if (el) el.classList.add('active');
+
+  const pages = {
+    dashboard:    pageDashboard,
+    allgrades:    pageAllGrades,
+    allstudents:  pageAllStudents,
+    ledger:       pageLedger,
+    verify:       pageVerify,
+    submissions:  pageSubmissions,
+    instructors:  pageInstructors,
+    mystudents:   pageMyStudents,
+    upload:       pageUpload,
+    mysubmissions:pageMySubmissions,
+    mychain:      pageMyChain,
+  };
+
+  if (pages[id]) {
+    document.getElementById('mainEl').innerHTML = pages[id]();
+    bindEvents(id);
+  }
+}
+
+/* =============================================
+   PAGE: DASHBOARD (Dean)
+   ============================================= */
+
+function pageDashboard() {
+  const onChain = students.filter(s => s.status === 'chain').length;
+  const pend    = students.filter(s => s.status === 'pend').length;
+  return `
+  <div class="ph"><h2>Dashboard</h2><p>Full overview — Dean access only · 1st Semester A.Y. 2025–2026</p></div>
+  <div class="stats">
+    <div class="sc blue"><div class="sl">Total Students</div><div class="sv">${students.length}</div><div class="ss">Enrolled this semester</div></div>
+    <div class="sc green"><div class="sl">On Blockchain</div><div class="sv">${onChain}</div><div class="ss">Immutable records</div></div>
+    <div class="sc amber"><div class="sl">Pending Upload</div><div class="sv">${pend}</div><div class="ss">Awaiting submission</div></div>
+    <div class="sc purple"><div class="sl">Block Height</div><div class="sv">#${nextBlock - 1}</div><div class="ss">Latest committed block</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="card">
+      <div class="ch"><span class="ct">Recent activity</span><span class="badge info"><i class="ti ti-activity"></i> Live</span></div>
+      ${logs.slice(0,5).map(l => `
+      <div class="log-entry">
+        <div class="dot ${l.dot}"></div>
+        <div class="lt">${l.time}</div>
+        <div class="ld">${l.desc}</div>
+      </div>`).join('')}
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Instructor submission status</span></div>
+      <table>
+        <thead><tr><th>Instructor</th><th>Department</th><th>Uploads</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:500">Engr. Reyes</td><td>Civil Engr.</td><td>3 batches</td><td><span class="badge chain"><i class="ti ti-lock"></i> On chain</span></td></tr>
+          <tr><td style="font-weight:500">Engr. Lim</td><td>Electrical</td><td>2 batches</td><td><span class="badge chain"><i class="ti ti-lock"></i> On chain</span></td></tr>
+          <tr><td style="font-weight:500">Engr. Cruz</td><td>Mechanical</td><td>1 batch</td><td><span class="badge ok"><i class="ti ti-check"></i> Uploaded</span></td></tr>
+          <tr><td style="font-weight:500">Dr. Garcia</td><td>Computer</td><td>0</td><td><span class="badge pend"><i class="ti ti-clock"></i> No upload</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="notice lock"><i class="ti ti-lock"></i>
+    <div>All on-chain grade records are <strong>immutable and irreversible</strong>. Instructors can only view and manage their own students. The Dean has full read access across all departments.</div>
+  </div>`;
+}
+
+/* =============================================
+   PAGE: ALL GRADES (Dean)
+   ============================================= */
+
+function pageAllGrades() {
+  return `
+  <div class="ph"><h2>All grade records</h2><p>Complete grade view across all instructors and departments — Dean only</p></div>
+  <div class="card">
+    <div class="search-row">
+      <input id="gs" placeholder="Search by name or student ID..." oninput="filterGrades()">
+      <select id="gProf" onchange="filterGrades()">
+        <option value="">All instructors</option>
+        <option value="reyes">Engr. Reyes</option>
+        <option value="lim">Engr. Lim</option>
+      </select>
+      <select id="gSubj" onchange="filterGrades()">
+        <option value="">All subjects</option>
+        <option>CE 401</option><option>CE 301</option><option>EE 301</option>
+      </select>
+      <select id="gStat" onchange="filterGrades()">
+        <option value="">All statuses</option>
+        <option value="chain">On chain</option>
+        <option value="ok">Uploaded</option>
+        <option value="pend">Pending</option>
+      </select>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:110px">Student ID</th>
+          <th style="width:140px">Name</th>
+          <th style="width:130px">Department</th>
+          <th style="width:60px">Subject</th>
+          <th style="width:100px">Instructor</th>
+          <th style="width:45px">Pre.</th>
+          <th style="width:45px">Mid.</th>
+          <th style="width:50px">Semi</th>
+          <th style="width:45px">Fin.</th>
+          <th style="width:85px">Status</th>
+        </tr></thead>
+        <tbody id="gtb">${gradeRows(students)}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function gradeRows(data) {
+  return data.map(s => `
+  <tr>
+    <td class="hash">${s.id}</td>
+    <td style="font-weight:500">${s.name}</td>
+    <td style="font-size:11px">${s.dept}</td>
+    <td>${s.subj}</td>
+    <td style="font-size:11px">${rd(s.prof).name}</td>
+    <td>${s.prelim  || '—'}</td>
+    <td>${s.midterm || '—'}</td>
+    <td>${s.semi    || '—'}</td>
+    <td>${s.final   || '—'}</td>
+    <td>${statusBadge(s.status)}</td>
+  </tr>`).join('');
+}
+
+function filterGrades() {
+  const q    = document.getElementById('gs').value.toLowerCase();
+  const prof = document.getElementById('gProf').value;
+  const subj = document.getElementById('gSubj').value;
+  const stat = document.getElementById('gStat').value;
+  const f = students.filter(s =>
+    (!q    || s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q)) &&
+    (!prof || s.prof === prof) &&
+    (!subj || s.subj === subj) &&
+    (!stat || s.status === stat)
+  );
+  document.getElementById('gtb').innerHTML = gradeRows(f);
+}
+
+/* =============================================
+   PAGE: ALL STUDENTS (Dean)
+   ============================================= */
+
+function pageAllStudents() {
+  return `
+  <div class="ph"><h2>All student lists</h2><p>All enrolled students across all instructors — Dean only</p></div>
+  <div class="card">
+    <div class="ch">
+      <span class="ct">Complete student roster (${students.length} total)</span>
+    </div>
+    <div class="search-row">
+      <input placeholder="Search name or ID..." oninput="
+        let q=this.value.toLowerCase();
+        document.querySelectorAll('#astb tr').forEach(r=>{
+          r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+        })">
+      <select onchange="
+        let v=this.value;
+        document.querySelectorAll('#astb tr').forEach(r=>{
+          r.style.display = (!v || r.dataset.prof===v) ? '' : 'none';
+        })">
+        <option value="">All instructors</option>
+        <option value="reyes">Engr. Reyes</option>
+        <option value="lim">Engr. Lim</option>
+      </select>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:110px">Student ID</th>
+          <th style="width:145px">Name</th>
+          <th style="width:135px">Department</th>
+          <th style="width:65px">Subject</th>
+          <th style="width:110px">Instructor</th>
+          <th style="width:120px">Upload method</th>
+          <th style="width:85px">Status</th>
+        </tr></thead>
+        <tbody id="astb">
+          ${students.map(s => `
+          <tr data-prof="${s.prof}">
+            <td class="hash">${s.id}</td>
+            <td style="font-weight:500">${s.name}</td>
+            <td style="font-size:11px">${s.dept}</td>
+            <td>${s.subj}</td>
+            <td style="font-size:11px">${rd(s.prof).name}</td>
+            <td>${uploadMethodBadge(s.uploadMethod)}</td>
+            <td>${statusBadge(s.status)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+/* =============================================
+   PAGE: BLOCKCHAIN LEDGER (Dean)
+   ============================================= */
+
+function pageLedger() {
+  return `
+  <div class="ph"><h2>Blockchain ledger</h2><p>Complete immutable chain — all instructor grade submissions</p></div>
+  <div class="notice lock" style="margin-bottom:16px"><i class="ti ti-lock"></i>
+    <div>Once committed to the blockchain, no record can be altered, deleted, or reversed by anyone — including the Dean or system administrators. This guarantees tamper-proof academic records.</div>
+  </div>
+  <div class="block-chain">
+    ${blocks.slice().reverse().map(b => `
+    <div class="bb">
+      <div class="bh">
+        <span class="bnum">Block #${b.num} — ${b.subj} ${b.period} · ${rd(b.prof).name}</span>
+        <span class="badge chain"><i class="ti ti-lock"></i> Immutable</span>
+      </div>
+      <div style="margin-bottom:4px"><span style="color:var(--text-3);font-size:11px">Hash: </span><span class="bhash">${b.hash}</span></div>
+      <div style="margin-bottom:4px"><span style="color:var(--text-3);font-size:11px">Prev: </span><span class="hash">${b.prev}</span></div>
+      <div class="block-meta">
+        <div><span>Students: </span>${b.count}</div>
+        <div><span>Period: </span>${b.period}</div>
+        <div><span>Committed: </span>${b.time}</div>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+/* =============================================
+   PAGE: VERIFY GRADE
+   ============================================= */
+
+function pageVerify() {
+  return `
+  <div class="ph"><h2>Verify grade integrity</h2><p>Confirm a student's grade matches the on-chain cryptographic record</p></div>
+  <div class="card" style="max-width:460px">
+    <div class="fg"><label>Student ID</label><input id="vid" placeholder="e.g. NCF-2021-0042" value="NCF-2021-0042"></div>
+    <div class="fg">
+      <label>Subject</label>
+      <select id="vsub">
+        <option>CE 401</option><option>EE 301</option><option>CE 301</option>
+      </select>
+    </div>
+    <button class="btn pri" onclick="doVerify()"><i class="ti ti-shield-check"></i> Verify on blockchain</button>
+    <div id="vres" style="margin-top:14px"></div>
+  </div>`;
+}
+
+function doVerify() {
+  const id = document.getElementById('vid').value.trim();
+  const s  = students.find(st => st.id === id);
+  const res = document.getElementById('vres');
+
+  // Privacy: if professor, only allow verifying own students
+  if (ROLES[curRole].type === 'prof' && s && s.prof !== curRole) {
+    res.innerHTML = `<div class="notice err"><i class="ti ti-alert-circle"></i> Access denied. You can only verify your own students.</div>`;
+    return;
+  }
+
+  if (s && s.status === 'chain') {
+    res.innerHTML = `
+    <div class="notice suc">
+      <i class="ti ti-shield-check"></i>
+      <div>
+        <strong>Grade verified — integrity confirmed</strong><br>
+        ${s.name} &middot; ${s.subj} &middot; ${rd(s.prof).name}<br>
+        <span class="hash">Hash: 0xa3f8...c221 &middot; Block #1045</span><br>
+        <span style="font-size:11px;margin-top:3px;display:block">All grade values match the on-chain record. No tampering detected.</span>
+      </div>
+    </div>`;
+  } else {
+    res.innerHTML = `<div class="notice warn"><i class="ti ti-alert-circle"></i> No verified blockchain record found for this student/subject combination.</div>`;
+  }
+}
+
+/* =============================================
+   PAGE: SUBMISSIONS LOG (Dean)
+   ============================================= */
+
+function pageSubmissions() {
+  return `
+  <div class="ph"><h2>Submissions log</h2><p>Full audit trail of all upload and grade commit activity — Dean only</p></div>
+  <div class="card">
+    <div class="ch">
+      <span class="ct">Activity log — all instructors</span>
+      <select onchange="
+        let v=this.value;
+        document.querySelectorAll('.le').forEach(r=>{
+          r.style.display = (!v || r.dataset.prof===v) ? '' : 'none';
+        })">
+        <option value="">All instructors</option>
+        <option value="reyes">Engr. Reyes</option>
+        <option value="lim">Engr. Lim</option>
+      </select>
+    </div>
+    ${logs.map(l => `
+    <div class="log-entry le" data-prof="${l.prof}">
+      <div class="dot ${l.dot}"></div>
+      <div class="lt">${l.time}</div>
+      <div class="ld">${l.desc}</div>
+      <div class="la">${rd(l.prof).name}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+/* =============================================
+   PAGE: INSTRUCTORS (Dean)
+   ============================================= */
+
+function pageInstructors() {
+  return `
+  <div class="ph"><h2>Instructors</h2><p>Registered faculty with system access — Dean only</p></div>
+  <div class="card">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Name</th><th>Department</th><th>Subjects</th>
+          <th>Uploads</th><th>Last active</th><th>Status</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="font-weight:500">Engr. Reyes</td><td>Civil Engineering</td><td>CE 401, CE 301</td><td>4 uploads</td><td>Nov 12, 2025</td><td><span class="badge ok"><i class="ti ti-check"></i> Active</span></td></tr>
+          <tr><td style="font-weight:500">Engr. Lim</td><td>Electrical Engr.</td><td>EE 301</td><td>3 uploads</td><td>Nov 12, 2025</td><td><span class="badge ok"><i class="ti ti-check"></i> Active</span></td></tr>
+          <tr><td style="font-weight:500">Engr. Cruz</td><td>Mechanical Engr.</td><td>ME 201</td><td>1 upload</td><td>Nov 08, 2025</td><td><span class="badge pend"><i class="ti ti-clock"></i> Pending</span></td></tr>
+          <tr><td style="font-weight:500">Dr. Garcia</td><td>Computer Engr.</td><td>CS 101</td><td>0 uploads</td><td>—</td><td><span class="badge pend"><i class="ti ti-clock"></i> No upload</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+/* =============================================
+   PAGE: MY STUDENTS (Instructor)
+   ============================================= */
+
+function pageMyStudents() {
+  const myS = students.filter(s => s.prof === curRole);
+  return `
+  <div class="ph"><h2>My student list</h2><p>${rd(curRole).name} &middot; ${rd(curRole).dept} — only your enrolled students are visible here</p></div>
+  <div class="notice info" style="margin-bottom:12px"><i class="ti ti-eye-off"></i>
+    <div>Student records from other instructors are <strong>not visible</strong> to you. Only your own enrolled students appear in this system.</div>
+  </div>
+  <div class="card">
+    <div class="ch">
+      <span class="ct">My students (${myS.length} total)</span>
+      <button class="btn pri sm" onclick="showPage('upload')"><i class="ti ti-upload"></i> Upload grades</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:110px">Student ID</th>
+          <th style="width:145px">Name</th>
+          <th style="width:70px">Subject</th>
+          <th style="width:50px">Pre.</th>
+          <th style="width:50px">Mid.</th>
+          <th style="width:50px">Semi</th>
+          <th style="width:50px">Fin.</th>
+          <th style="width:85px">Status</th>
+        </tr></thead>
+        <tbody>
+          ${myS.map(s => `
+          <tr>
+            <td class="hash">${s.id}</td>
+            <td style="font-weight:500">${s.name}</td>
+            <td>${s.subj}</td>
+            <td>${s.prelim  || '—'}</td>
+            <td>${s.midterm || '—'}</td>
+            <td>${s.semi    || '—'}</td>
+            <td>${s.final   || '—'}</td>
+            <td>${statusBadge(s.status)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+/* =============================================
+   PAGE: UPLOAD GRADES (Instructor)
+   ============================================= */
+
+function pageUpload() {
+  const profSubjects = rd(curRole).subjects || ['CE 401'];
+  return `
+  <div class="ph"><h2>Upload grades</h2><p>${rd(curRole).name} &middot; Upload student list and grade sheet — your data is private from other instructors</p></div>
+
+  <div class="step-row">
+
+    <!-- STEP 1: Student List -->
+    <div>
+      <div class="card">
+        <div class="ch"><span class="ct"><i class="ti ti-list-numbers"></i> Step 1 — Upload student list</span></div>
+        <div class="form-grid">
+          <div class="fg">
+            <label>Subject</label>
+            <select id="upSubj">
+              ${profSubjects.map(s => `<option>${s}</option>`).join('')}
+            </select>
+          </div>
+          <div class="fg">
+            <label>Grade period</label>
+            <select id="upPeriod">
+              <option>Prelim</option><option>Midterm</option>
+              <option>Semi-Final</option><option>Final</option>
+            </select>
+          </div>
+        </div>
+
+        <!--
+          ============================================================
+          UPLOAD ZONE — Student List
+          
+          TO CONNECT REAL FILE READING:
+          - For XLSX/CSV: use SheetJS (xlsx library) to parse the file
+          - For DOCX: use mammoth.js to extract text
+          - For PDF: use PDF.js to extract text
+          - For Image/Photo: send to Claude Vision API or Google Vision OCR
+          
+          See the commented integration notes at the bottom of this file.
+          ============================================================
+        -->
+        <div class="uz" id="uzA"
+          onclick="document.getElementById('fiA').click()"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="handleDrop(event,'list')">
+          <input type="file" id="fiA"
+            accept="image/*,.pdf,.docx,.doc,.xlsx,.xls,.csv"
+            style="display:none"
+            onchange="handleFile(this,'list')">
+          <i class="ti ti-file-import" id="uzAi"></i>
+          <div class="ut" id="uzAt">Click or drag to upload student list</div>
+          <div class="us" id="uzAs">Supports: Photo (OCR) · PDF · Word (.docx) · Excel (.xlsx) · CSV</div>
+          <div class="file-tags">
+            <span class="ftag"><i class="ti ti-photo"></i> JPG/PNG (OCR)</span>
+            <span class="ftag"><i class="ti ti-file-type-pdf"></i> PDF</span>
+            <span class="ftag"><i class="ti ti-file-word"></i> DOCX/DOC</span>
+            <span class="ftag"><i class="ti ti-table"></i> XLSX/XLS</span>
+            <span class="ftag"><i class="ti ti-file-spreadsheet"></i> CSV</span>
+          </div>
+        </div>
+        <div id="listNotice"></div>
+      </div>
+
+      <!-- STEP 2: Grade Sheet -->
+      <div class="card">
+        <div class="ch"><span class="ct"><i class="ti ti-table-import"></i> Step 2 — Upload grade sheet</span></div>
+
+        <!--
+          Same note applies here — connect real OCR/parsing in production.
+        -->
+        <div class="uz" id="uzB"
+          onclick="document.getElementById('fiB').click()"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="handleDrop(event,'grade')">
+          <input type="file" id="fiB"
+            accept="image/*,.pdf,.xlsx,.xls,.csv,.docx"
+            style="display:none"
+            onchange="handleFile(this,'grade')">
+          <i class="ti ti-photo-scan" id="uzBi"></i>
+          <div class="ut" id="uzBt">Click or drag to upload grade sheet</div>
+          <div class="us" id="uzBs">Photo of grade sheet · Excel · CSV · PDF</div>
+          <div class="file-tags">
+            <span class="ftag"><i class="ti ti-photo"></i> Photo (OCR)</span>
+            <span class="ftag"><i class="ti ti-table"></i> XLSX/CSV</span>
+            <span class="ftag"><i class="ti ti-file-type-pdf"></i> PDF</span>
+          </div>
+        </div>
+        <div id="gradeNotice"></div>
+      </div>
+    </div>
+
+    <!-- STEP 3: Review & Commit -->
+    <div class="card" style="align-self:start">
+      <div class="ch">
+        <span class="ct"><i class="ti ti-link"></i> Step 3 — Review & commit to blockchain</span>
+        <button class="btn suc" id="commitBtn" onclick="commitChain()" style="display:none">
+          <i class="ti ti-lock"></i> Commit to blockchain
+        </button>
+      </div>
+      <div class="notice lock" style="margin-bottom:12px">
+        <i class="ti ti-info-circle"></i>
+        <div>Review extracted grades carefully. Once committed to the blockchain, they <strong>cannot be changed or deleted</strong>.</div>
+      </div>
+      <div id="reviewArea">
+        <div class="iso-box">
+          <i class="ti ti-scan"></i>
+          Upload a student list and grade sheet to preview entries before committing.
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* =============================================
+   PAGE: MY SUBMISSIONS (Instructor)
+   ============================================= */
+
+function pageMySubmissions() {
+  const myLogs = logs.filter(l => l.prof === curRole);
+  return `
+  <div class="ph"><h2>My submissions</h2><p>Your own upload and blockchain commit history — other instructors' activity is not visible here</p></div>
+  <div class="notice info" style="margin-bottom:12px"><i class="ti ti-eye-off"></i>
+    <div>Only your own submissions appear here. Other instructors cannot see your activity.</div>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">My activity log (${myLogs.length} entries)</span></div>
+    ${myLogs.length > 0
+      ? myLogs.map(l => `
+        <div class="log-entry">
+          <div class="dot ${l.dot}"></div>
+          <div class="lt">${l.time}</div>
+          <div class="ld">${l.desc}</div>
+        </div>`).join('')
+      : '<div class="iso-box"><i class="ti ti-clipboard-x"></i>No submissions yet. Upload your first grade sheet to get started.</div>'
+    }
+  </div>`;
+}
+
+/* =============================================
+   PAGE: MY CHAIN RECORDS (Instructor)
+   ============================================= */
+
+function pageMyChain() {
+  const myBlocks = blocks.filter(b => b.prof === curRole);
+  return `
+  <div class="ph"><h2>My chain records</h2><p>Blockchain entries from your submissions only</p></div>
+  <div class="notice lock" style="margin-bottom:14px"><i class="ti ti-lock"></i>
+    <div>These records are permanently immutable. Other instructors cannot view your chain entries.</div>
+  </div>
+  ${myBlocks.length > 0
+    ? `<div class="block-chain">${myBlocks.slice().reverse().map(b => `
+      <div class="bb">
+        <div class="bh">
+          <span class="bnum">Block #${b.num} — ${b.subj} ${b.period}</span>
+          <span class="badge chain"><i class="ti ti-lock"></i> Immutable</span>
+        </div>
+        <div style="margin-bottom:4px"><span style="color:var(--text-3);font-size:11px">Hash: </span><span class="bhash">${b.hash}</span></div>
+        <div style="margin-bottom:4px"><span style="color:var(--text-3);font-size:11px">Prev: </span><span class="hash">${b.prev}</span></div>
+        <div class="block-meta">
+          <div><span>Students: </span>${b.count}</div>
+          <div><span>Period: </span>${b.period}</div>
+          <div><span>Committed: </span>${b.time}</div>
+        </div>
+      </div>`).join('')}
+    </div>`
+    : '<div class="iso-box"><i class="ti ti-link-off"></i>No blockchain commits yet. Upload and commit a grade sheet to create your first block.</div>'
+  }`;
+}
+
+/* =============================================
+   FILE UPLOAD HANDLERS
+   ============================================= */
+
+function handleDrop(e, type) {
+  e.preventDefault();
+  document.getElementById(type === 'list' ? 'uzA' : 'uzB').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) processUpload(file.name, type);
+}
+
+function handleFile(input, type) {
+  if (input.files[0]) processUpload(input.files[0].name, type);
+}
+
+/*
+  processUpload — currently SIMULATES file reading.
+
+  TO MAKE THIS REAL IN VS CODE:
+  -------------------------------------------------------
+  1. PHOTO (OCR):
+     - Use Claude Vision API: send base64 image to Anthropic /v1/messages
+     - Or use Google Vision API / Tesseract.js (free, browser-based OCR)
+     - Tesseract CDN: https://cdn.jsdelivr.net/npm/tesseract.js
+
+  2. EXCEL (.xlsx/.xls):
+     - Use SheetJS: https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js
+     - Example:
+       const reader = new FileReader();
+       reader.onload = e => {
+         const wb = XLSX.read(e.target.result, { type: 'binary' });
+         const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+         // rows = array of objects with column headers as keys
+       };
+       reader.readAsBinaryString(file);
+
+  3. CSV:
+     - Parse directly in JavaScript (no library needed):
+       const text = await file.text();
+       const rows = text.split('\n').map(r => r.split(','));
+
+  4. DOCX (.docx):
+     - Use mammoth.js: https://cdn.jsdelivr.net/npm/mammoth/mammoth.browser.min.js
+     - Example:
+       mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })
+         .then(result => { const text = result.value; });
+
+  5. PDF:
+     - Use PDF.js: https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js
+     - Extract text page by page, then parse with regex.
+
+  After parsing, push detected students to the `students` array.
+  -------------------------------------------------------
+*/
+
+function processUpload(filename, type) {
+  const ext = filename.split('.').pop().toLowerCase();
+  const isImg = ['jpg','jpeg','png','webp','bmp','tiff'].includes(ext);
+
+  const methodMap = {
+    xlsx:'Excel (.xlsx)', xls:'Excel (.xls)', csv:'CSV',
+    pdf:'PDF extraction', docx:'Word (.docx)', doc:'Word (.doc)',
+  };
+  const method = isImg ? 'Photo scan (OCR)' : (methodMap[ext] || 'File import');
+
+  const iconEl  = document.getElementById(type === 'list' ? 'uzAi' : 'uzBi');
+  const titleEl = document.getElementById(type === 'list' ? 'uzAt' : 'uzBt');
+  const subEl   = document.getElementById(type === 'list' ? 'uzAs' : 'uzBs');
+  const notEl   = document.getElementById(type === 'list' ? 'listNotice' : 'gradeNotice');
+
+  iconEl.className = 'ti ti-loader';
+  titleEl.textContent = filename;
+  subEl.textContent   = 'Processing via ' + method + '...';
+  notEl.innerHTML     = '';
+
+  // SIMULATION DELAY — replace this setTimeout with your real parsing logic
+  const myCount = students.filter(s => s.prof === curRole).length || 4;
+  setTimeout(() => {
+    iconEl.className = 'ti ti-circle-check';
+    const msg = type === 'list'
+      ? `${myCount} students detected via <strong>${method}</strong>. Entries ready for grade entry.`
+      : `Grade data extracted via <strong>${method}</strong>. Values pre-filled below — review before committing.`;
+    notEl.innerHTML = `<div class="notice suc"><i class="ti ti-check"></i><div>${msg}</div></div>`;
+
+    if (type === 'list')   uploadState.list  = true;
+    if (type === 'grade')  uploadState.grade = true;
+
+    if (uploadState.list && uploadState.grade) renderReviewTable();
+  }, 1100);
+}
+
+/* =============================================
+   REVIEW TABLE
+   ============================================= */
+
+function renderReviewTable() {
+  const myS = students.filter(s => s.prof === curRole);
+  document.getElementById('reviewArea').innerHTML = `
+  <div class="tbl-wrap">
+    <table id="reviewTable">
+      <thead><tr>
+        <th style="width:110px">Student ID</th>
+        <th style="width:145px">Name</th>
+        <th style="width:60px">Prelim</th>
+        <th style="width:60px">Midterm</th>
+        <th style="width:65px">Semi-Final</th>
+        <th style="width:60px">Final</th>
+      </tr></thead>
+      <tbody>
+        ${myS.map(s => `
+        <tr data-id="${s.id}">
+          <td class="hash">${s.id}</td>
+          <td style="font-weight:500">${s.name}</td>
+          <td><input class="grade-input" data-field="prelim"  value="${s.prelim  || ''}" min="0" max="100" type="number"></td>
+          <td><input class="grade-input" data-field="midterm" value="${s.midterm || ''}" min="0" max="100" type="number"></td>
+          <td><input class="grade-input" data-field="semi"    value="${s.semi    || ''}" min="0" max="100" type="number"></td>
+          <td><input class="grade-input" data-field="final"   value="${s.final   || ''}" min="0" max="100" type="number"></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+  document.getElementById('commitBtn').style.display = 'inline-flex';
+}
+
+/* =============================================
+   COMMIT TO BLOCKCHAIN
+   ============================================= */
+
+function commitChain() {
+  // Save edited values from the review table back to the students array
+  const rows = document.querySelectorAll('#reviewTable tbody tr');
+  rows.forEach(row => {
+    const id  = row.dataset.id;
+    const st  = students.find(s => s.id === id);
+    if (!st) return;
+    row.querySelectorAll('.grade-input').forEach(inp => {
+      st[inp.dataset.field] = parseInt(inp.value) || 0;
+      st.status = 'chain';
+      st.uploadMethod = 'Uploaded (committed)';
+    });
+  });
+
+  const hash  = genHash();
+  const subj  = document.getElementById('upSubj')   ? document.getElementById('upSubj').value   : rd(curRole).subjects[0];
+  const period= document.getElementById('upPeriod') ? document.getElementById('upPeriod').value : 'Final';
+  const myS   = students.filter(s => s.prof === curRole);
+  const now   = nowStr();
+  const name  = rd(curRole).name;
+
+  // Add new block
+  blocks.push({
+    num: nextBlock, hash, prev: blocks[blocks.length - 1]?.hash || '0x0000...0000',
+    time: now, prof: curRole, subj: subj.split('–')[0].trim(), period, count: myS.length
+  });
+
+  // Add log entry
+  logs.unshift({
+    time: now, dot: 'g',
+    desc: `${name} committed ${subj.split('–')[0].trim()} ${period} grades (${myS.length} students) — Block #${nextBlock}`,
+    prof: curRole
+  });
+
+  // Show modal
+  document.getElementById('mBlock').textContent = '#' + nextBlock;
+  document.getElementById('mHash').textContent  = hash;
+  document.getElementById('mTime').textContent  = now;
+  document.getElementById('mSubj').textContent  = subj.split('–')[0].trim() + ' — ' + period;
+  document.getElementById('mCount').textContent = myS.length + ' students';
+  document.getElementById('mBy').textContent    = name;
+  document.getElementById('successModal').classList.add('open');
+
+  nextBlock++;
+  uploadState = { list: false, grade: false };
+}
+
+function closeModal() {
+  document.getElementById('successModal').classList.remove('open');
+}
+
+/* =============================================
+   BIND PAGE-SPECIFIC EVENTS
+   ============================================= */
+
+function bindEvents(id) {
+  if (id === 'allgrades') {
+    window.filterGrades = filterGrades;
+  }
+  if (id === 'verify') {
+    window.doVerify = doVerify;
+  }
+  if (id === 'upload') {
+    window.handleDrop    = handleDrop;
+    window.handleFile    = handleFile;
+    window.commitChain   = commitChain;
+  }
+}
+
+/* =============================================
+   INIT
+   ============================================= */
+window.addEventListener('DOMContentLoaded', () => {
+  setRole('dean');
+});
+
+</script>
+
+<!--
+  ================================================================
+  INTEGRATION NOTES FOR VS CODE DEVELOPMENT
+  ================================================================
+
+  1. REPLACE HARDCODED DATA:
+     - The `students` array → connect to your database (MySQL, PostgreSQL, etc.)
+     - Use PHP/Node.js/Python backend to serve student data as JSON API
+     - Example: fetch('/api/students').then(r=>r.json()).then(data => students = data)
+
+  2. REAL FILE PARSING (add these CDN scripts to <head>):
+
+     Excel (.xlsx/.xls):
+     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+     Word (.docx):
+     <script src="https://cdn.jsdelivr.net/npm/mammoth/mammoth.browser.min.js"></script>
+
+     OCR for photos (free, browser-based):
+     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+     // Usage: Tesseract.recognize(imageFile, 'eng').then(({data:{text}}) => parseGrades(text))
+
+     PDF:
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
+
+  3. REAL BLOCKCHAIN:
+     - For a simple immutable ledger: use Ethereum testnet + Web3.js or ethers.js
+     - For private/academic blockchain: Hyperledger Fabric
+     - For simple hash-only tamper detection: store SHA-256 hash in MySQL
+       and verify by recomputing the hash on demand
+
+  4. AUTHENTICATION:
+     - Add a login page with session-based or JWT authentication
+     - Protect each route/page by checking the logged-in user's role
+     - Never trust client-side role switching in production
+
+  5. BACKEND SUGGESTIONS:
+     - PHP + MySQL (simple, works on any shared host)
+     - Node.js + Express + PostgreSQL
+     - Laravel (PHP) for a full MVC approach
+
+  ================================================================
+-->
+
+</body>
+</html>
