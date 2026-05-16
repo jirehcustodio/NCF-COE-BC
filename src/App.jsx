@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import { ROLES, INITIAL_STUDENTS, INITIAL_BLOCKS, INITIAL_LOGS } from './data/appData';
-import { supabase } from './lib/supabaseClient';
+import { isSupabaseConfigured, supabase } from './lib/supabaseClient';
 import {
   fetchBlocks,
   fetchInstructors,
@@ -73,6 +73,10 @@ export default function App() {
   }, [showSplash]);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setAuthError('Supabase is not configured. Add REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY to .env, then restart the dev server.');
+      return () => {};
+    }
     let active = true;
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
