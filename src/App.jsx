@@ -63,9 +63,14 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [instructors, setInstructors] = useState([]);
   useEffect(() => {
+    if (!showSplash) return () => {};
     const timer = setTimeout(() => setShowSplash(false), 2600);
-    return () => clearTimeout(timer);
-  }, []);
+    const guard = setTimeout(() => setShowSplash(false), 6000);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(guard);
+    };
+  }, [showSplash]);
 
   useEffect(() => {
     let active = true;
@@ -137,7 +142,7 @@ export default function App() {
 
   if (showSplash) {
     return (
-      <div className="splash">
+      <div className="splash" onClick={() => setShowSplash(false)}>
         <div
           className="splash-logo"
           aria-label="NCF College of Engineering logo"
