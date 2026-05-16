@@ -4,7 +4,7 @@
 import React from 'react';
 import { ROLES, DEAN_NAV, PROF_NAV } from '../data/appData';
 
-export default function Sidebar({ curRole, activePage, onRoleChange, onNavigate, onLogout }) {
+export default function Sidebar({ curRole, activePage, onRoleChange, onNavigate, onLogout, showRoleSwitcher = true }) {
   const rd   = ROLES[curRole];
   const nav  = rd.type === 'dean' ? DEAN_NAV : PROF_NAV;
 
@@ -52,24 +52,25 @@ export default function Sidebar({ curRole, activePage, onRoleChange, onNavigate,
       ))}
 
       <div className="sb-footer">
-        {/* Role switcher — prototype only */}
-        <div className="role-sw">
-          <div className="lbl">Switch account (prototype demo)</div>
-          <div className="role-btns">
-            {[
-              { key: 'dean',       label: 'Dean' },
-              { key: 'instructor', label: 'Instructor' },
-            ].map(r => (
-              <button
-                key={r.key}
-                className={`rb ${curRole === r.key ? 'active' : ''}`}
-                onClick={() => onRoleChange(r.key)}
-              >
-                {r.label}
-              </button>
-            ))}
+        {showRoleSwitcher && (
+          <div className="role-sw">
+            <div className="lbl">Switch account (prototype demo)</div>
+            <div className="role-btns">
+              {[
+                { key: 'dean',       label: 'Dean' },
+                { key: 'instructor', label: 'Instructor' },
+              ].map(r => (
+                <button
+                  key={r.key}
+                  className={`rb ${curRole === r.key ? 'active' : ''}`}
+                  onClick={() => onRoleChange(r.key)}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <button className="sb-logout" onClick={onLogout}>
           <i className="ti ti-logout" />

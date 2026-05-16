@@ -215,6 +215,44 @@
 .btn.sm    { padding: 5px 10px; font-size: 11px; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 1200px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .two-col { grid-template-columns: 1fr; }
+  .step-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  :root { --sidebar-w: 200px; }
+  .main { padding: 20px 18px; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .sb-logo .org { font-size: 12px; }
+}
+
+@media (max-width: 720px) {
+  :root { --sidebar-w: 100%; }
+  .layout { flex-direction: column; }
+  .sidebar {
+    position: relative;
+    width: 100%;
+    height: auto;
+  }
+  .main { margin-left: 0; padding: 18px 14px; }
+  .stats { grid-template-columns: 1fr; }
+  .search-row { flex-direction: column; align-items: stretch; }
+  .form-grid { grid-template-columns: 1fr; }
+  .nav-item { padding: 10px 16px; }
+  .sb-user { flex-wrap: wrap; }
+}
+
+@media (max-width: 480px) {
+  .card { padding: 14px; }
+  .btn { width: 100%; justify-content: center; }
+  .landing-card { padding: 22px 18px; }
+  .landing-logo { width: 90px; height: 90px; }
+  .splash-logo { width: 180px; height: 180px; }
+}
+
 /* ---------- TABLE ---------- */
 .tbl-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 12px; }

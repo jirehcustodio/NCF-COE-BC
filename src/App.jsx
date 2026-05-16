@@ -62,6 +62,7 @@ export default function App() {
   const [authError,  setAuthError]  = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [instructors, setInstructors] = useState([]);
+  const isDean = ROLES[curRole]?.type === 'dean';
   useEffect(() => {
     if (!showSplash) return () => {};
     const timer = setTimeout(() => setShowSplash(false), 2600);
@@ -194,7 +195,7 @@ export default function App() {
       setAuthError(error.message);
       return;
     }
-    const createdRole = data.user?.user_metadata?.role === 'dean' ? 'dean' : role;
+    const createdRole = role === 'dean' ? 'dean' : 'instructor';
     setCurRole(createdRole);
     setActivePage(ROLES[createdRole].type === 'dean' ? 'dashboard' : 'mystudents');
     setShowLanding(false);
@@ -208,6 +209,7 @@ export default function App() {
 
   /* ---- Role switching ---- */
   function handleRoleChange(role) {
+    if (authUser) return;
     setCurRole(role);
     setActivePage(ROLES[role].type === 'dean' ? 'dashboard' : 'mystudents');
   }
@@ -288,13 +290,13 @@ export default function App() {
 
     switch (activePage) {
       // Dean pages
-      case 'dashboard':    return <Dashboard   {...props} />;
-      case 'allgrades':    return <AllGrades   {...props} />;
-      case 'allstudents':  return <AllStudents {...props} />;
-      case 'ledger':       return <Ledger      {...props} />;
-      case 'verify':       return <Verify      {...props} />;
-      case 'submissions':  return <Submissions {...props} />;
-  case 'instructors':  return <Instructors instructors={instructors} />;
+      case 'dashboard':    return isDean ? <Dashboard {...props} /> : <MyStudents {...props} onNavigate={handleNavigate} />;
+      case 'allgrades':    return isDean ? <AllGrades {...props} /> : <MyStudents {...props} onNavigate={handleNavigate} />;
+      case 'allstudents':  return isDean ? <AllStudents {...props} /> : <MyStudents {...props} onNavigate={handleNavigate} />;
+      case 'ledger':       return isDean ? <Ledger {...props} /> : <MyChain {...props} />;
+      case 'verify':       return <Verify {...props} />;
+      case 'submissions':  return isDean ? <Submissions {...props} /> : <MySubmissions {...props} />;
+      case 'instructors':  return isDean ? <Instructors instructors={instructors} /> : <MyStudents {...props} onNavigate={handleNavigate} />;
 
       // Instructor pages
       case 'mystudents':    return <MyStudents   {...props} onNavigate={handleNavigate} />;
@@ -314,6 +316,7 @@ export default function App() {
         onRoleChange={handleRoleChange}
         onNavigate={handleNavigate}
         onLogout={handleLogout}
+        showRoleSwitcher={!authUser}
       />
       <div className="main">
         {renderPage()}
