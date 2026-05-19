@@ -4,8 +4,9 @@
 import React from 'react';
 import { Notice, LogEntry, EmptyState } from '../Shared';
 
-export function MySubmissions({ logs, curRole }) {
-  const myLogs = logs.filter(l => l.prof === curRole);
+export function MySubmissions({ logs, curRole, profKey }) {
+  const activeProf = profKey || curRole;
+  const myLogs = logs.filter(l => l.prof === activeProf);
   return (
     <>
       <div className="ph">
@@ -29,8 +30,9 @@ export function MySubmissions({ logs, curRole }) {
 /* ============================================================
    MyChain.jsx — Instructor's own blockchain blocks
    ============================================================ */
-export function MyChain({ blocks, curRole }) {
-  const myBlocks = blocks.filter(b => b.prof === curRole);
+export function MyChain({ blocks, curRole, profKey }) {
+  const activeProf = profKey || curRole;
+  const myBlocks = blocks.filter(b => b.prof === activeProf);
   return (
     <>
       <div className="ph">

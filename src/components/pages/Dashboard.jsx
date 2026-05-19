@@ -1,16 +1,116 @@
-import React from 'react';
-import { ROLES, INSTRUCTORS_TABLE } from '../../data/appData';
-import { LogEntry, Notice } from '../Shared';
+import React, { useMemo, useState } from 'react';
+import { ROLES } from '../../data/appData';
+import { EmptyState, LogEntry, Notice } from '../Shared';
 
-export default function Dashboard({ students, logs, blocks }) {
-  const onChain = students.filter(s => s.status === 'chain').length;
-  const pend    = students.filter(s => s.status === 'pend').length;
+export default function Dashboard({ students, logs, blocks, gradeSheets = [], facultyRecords = [], onClearStudents }) {
+  const [selectedInstructor, setSelectedInstructor] = useState('');
+  const onChain = blocks.reduce((sum, block) => sum + (block.count || 0), 0);
+  const pendingUploads = gradeSheets.filter(sheet => sheet.status !== 'Submitted').length;
+  const latestBlock = blocks.reduce((max, block) => Math.max(max, block.num || 0), 0);
+  const periodicalSaves = logs.filter(entry => String(entry.desc || '').toLowerCase().includes('saved')).length;
+  const blockchainCommits = blocks.length;
+
+  const instructorOptions = useMemo(() => {
+    const fromLogs = logs.map(entry => entry.prof).filter(Boolean);
+    const fromBlocks = blocks.map(block => block.prof).filter(Boolean);
+    const fromFaculty = facultyRecords.map(record => record.id).filter(Boolean);
+    return Array.from(new Set([...fromLogs, ...fromBlocks, ...fromFaculty]));
+  }, [logs, blocks, facultyRecords]);
+
+  const activityLogs = useMemo(() => {
+    if (!selectedInstructor) return logs;
+    return logs.filter(entry => entry.prof === selectedInstructor);
+  }, [logs, selectedInstructor]);
+
+  const submissionRows = useMemo(() => {
+    const map = new Map();
+    instructorOptions.forEach(id => {
+      const profile = facultyRecords.find(record => record.id === id);
+      map.set(id, {
+        id,
+        name: profile?.name || ROLES[id]?.name || id,
+        dept: profile?.dept || ROLES[id]?.dept || '—',
+        uploads: 0,
+        lastActivity: null,
+      });
+    });
+    blocks.forEach(block => {
+      const row = map.get(block.prof) || {
+        id: block.prof,
+        name: ROLES[block.prof]?.name || block.prof,
+        dept: ROLES[block.prof]?.dept || '—',
+        uploads: 0,
+        lastActivity: null,
+      };
+      row.uploads += 1;
+      row.lastActivity = block.time || row.lastActivity;
+      map.set(block.prof, row);
+    });
+    logs.forEach(entry => {
+      const row = map.get(entry.prof);
+      if (row && entry.time) {
+        row.lastActivity = row.lastActivity || entry.time;
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => b.uploads - a.uploads);
+  }, [blocks, logs, facultyRecords, instructorOptions]);
+
+  const submissionTrend = useMemo(() => {
+    const parseDate = (value) => {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date;
+    };
+    const weekKey = (date) => {
+      const copy = new Date(date);
+      const day = (copy.getDay() + 6) % 7;
+      copy.setDate(copy.getDate() - day);
+      copy.setHours(0, 0, 0, 0);
+      return copy;
+    };
+    const formatLabel = (date) => date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+
+    const counts = new Map();
+    blocks.forEach(block => {
+      const date = parseDate(block.time);
+      if (!date) return;
+      const key = weekKey(date).toISOString();
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    logs.forEach(entry => {
+      if (!String(entry.desc || '').toLowerCase().includes('saved')) return;
+      const date = parseDate(entry.time);
+      if (!date) return;
+      const key = weekKey(date).toISOString();
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+
+    const rows = Array.from(counts.entries())
+      .map(([key, value]) => ({ date: new Date(key), value }))
+      .sort((a, b) => a.date - b.date)
+      .slice(-8)
+      .map(item => ({ label: formatLabel(item.date), value: item.value }));
+    return rows;
+  }, [blocks, logs]);
 
   return (
     <>
       <div className="ph">
         <h2>Dashboard</h2>
         <p>Full overview — Dean access only · 1st Semester A.Y. 2025–2026</p>
+        {onClearStudents && (
+          <button
+            className="btn sm"
+            type="button"
+            onClick={() => {
+              if (window.confirm('This will permanently delete all students. Continue?')) {
+                onClearStudents();
+              }
+            }}
+            style={{ marginTop: 12 }}
+          >
+            <i className="ti ti-trash" /> Clear all students
+          </button>
+        )}
       </div>
 
       {/* Stat cards */}
@@ -27,12 +127,12 @@ export default function Dashboard({ students, logs, blocks }) {
         </div>
         <div className="sc amber">
           <div className="sl">Pending Upload</div>
-          <div className="sv">{pend}</div>
+          <div className="sv">{pendingUploads}</div>
           <div className="ss">Awaiting submission</div>
         </div>
         <div className="sc purple">
           <div className="sl">Block Height</div>
-          <div className="sv">#{blocks[blocks.length - 1]?.num || 0}</div>
+          <div className="sv">#{latestBlock}</div>
           <div className="ss">Latest committed block</div>
         </div>
       </div>
@@ -44,9 +144,21 @@ export default function Dashboard({ students, logs, blocks }) {
             <span className="ct">Recent activity</span>
             <span className="badge live"><i className="ti ti-activity" /> Live</span>
           </div>
-          {logs.slice(0, 5).map((l, i) => (
-            <LogEntry key={i} entry={l} />
-          ))}
+          <div className="search-row">
+            <select value={selectedInstructor} onChange={event => setSelectedInstructor(event.target.value)}>
+              <option value="">All instructors</option>
+              {instructorOptions.map(ins => (
+                <option key={ins} value={ins}>{ROLES[ins]?.name || ins}</option>
+              ))}
+            </select>
+          </div>
+          {activityLogs.length > 0 ? (
+            activityLogs.slice(0, 6).map((l, i) => (
+              <LogEntry key={`${l.time}-${i}`} entry={l} />
+            ))
+          ) : (
+            <EmptyState icon="ti-activity">No activity logs yet.</EmptyState>
+          )}
         </div>
 
         {/* Instructor status */}
@@ -56,26 +168,69 @@ export default function Dashboard({ students, logs, blocks }) {
             <table>
               <thead>
                 <tr>
-                  <th>Instructor</th><th>Department</th>
-                  <th>Uploads</th><th>Status</th>
+                  <th>Instructor</th><th>Program</th>
+                  <th>Uploads</th><th>Last activity</th><th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {INSTRUCTORS_TABLE.map((r, i) => (
-                  <tr key={i}>
-                    <td style={{ fontWeight: 500 }}>{r.name}</td>
-                    <td style={{ fontSize: 11 }}>{r.dept}</td>
-                    <td>{r.uploads}</td>
-                    <td>
-                      {r.status === 'ok'
-                        ? <span className="badge ok"><i className="ti ti-check" /> Active</span>
-                        : <span className="badge pend"><i className="ti ti-clock" /> Pending</span>}
+                {submissionRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: 16, color: 'var(--text-3)' }}>
+                      No instructor submissions yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  submissionRows.map((r, i) => (
+                    <tr key={`${r.id}-${i}`}>
+                      <td style={{ fontWeight: 500 }}>{r.name}</td>
+                      <td style={{ fontSize: 11 }}>{r.dept}</td>
+                      <td>{r.uploads}</td>
+                      <td style={{ fontSize: 11 }}>{r.lastActivity || '—'}</td>
+                      <td>
+                        {r.uploads > 0
+                          ? <span className="badge ok"><i className="ti ti-check" /> Active</span>
+                          : <span className="badge pend"><i className="ti ti-clock" /> Pending</span>}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <div className="two-col">
+        <div className="card">
+          <div className="ch"><span className="ct">Periodical saves vs blockchain commits</span></div>
+          <div className="summary-grid">
+            <div className="summary-card">
+              <span>Periodical saves</span>
+              <strong>{periodicalSaves}</strong>
+            </div>
+            <div className="summary-card">
+              <span>Blockchain commits</span>
+              <strong>{blockchainCommits}</strong>
+            </div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="ch"><span className="ct">Submissions per week</span></div>
+          {submissionTrend.length === 0 ? (
+            <EmptyState icon="ti-chart-bar">No submission trend data yet.</EmptyState>
+          ) : (
+            <div className="trend-chart">
+              {submissionTrend.map(row => (
+                <div className="trend-row" key={row.label}>
+                  <div className="trend-label">{row.label}</div>
+                  <div className="trend-bar">
+                    <span style={{ width: `${Math.min(100, row.value * 15)}%` }} />
+                  </div>
+                  <div className="trend-value">{row.value}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

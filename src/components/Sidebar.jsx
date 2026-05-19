@@ -4,9 +4,22 @@
 import React from 'react';
 import { ROLES, DEAN_NAV, PROF_NAV } from '../data/appData';
 
-export default function Sidebar({ curRole, activePage, onRoleChange, onNavigate, onLogout, showRoleSwitcher = true }) {
+export default function Sidebar({
+  curRole,
+  program = '',
+  userName,
+  avatarUrl,
+  onOpenProfile,
+  activePage,
+  onRoleChange,
+  onNavigate,
+  onLogout,
+  showRoleSwitcher = true,
+}) {
   const rd   = ROLES[curRole];
   const nav  = rd.type === 'dean' ? DEAN_NAV : PROF_NAV;
+  const displayName = userName || rd.name;
+  const initials = displayName.split(' ').slice(0, 2).map(part => part[0]).join('').toUpperCase();
 
   return (
     <div className="sidebar">
@@ -26,11 +39,23 @@ export default function Sidebar({ curRole, activePage, onRoleChange, onNavigate,
       </div>
 
       {/* Current user */}
-      <div className="sb-user">
-        <div className={`av ${rd.color}`}>{rd.av}</div>
+      <div className="sb-user" onClick={onOpenProfile} role="button" tabIndex={0} onKeyDown={(event) => {
+        if (event.key === 'Enter') onOpenProfile && onOpenProfile();
+      }}>
+        <div
+          className={`av ${rd.color}`}
+          style={avatarUrl ? { backgroundImage: `url(${avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', color: 'transparent' } : undefined}
+        >
+          {!avatarUrl && (initials || rd.av)}
+        </div>
         <div>
-          <div className="sb-name">{rd.name}</div>
+          <div className="sb-name">{displayName}</div>
           <div className="sb-role">{rd.role}</div>
+          {rd.type === 'instructor' && program && (
+            <div className="sb-program">
+              <span className="badge info">Program: {program}</span>
+            </div>
+          )}
         </div>
       </div>
 
