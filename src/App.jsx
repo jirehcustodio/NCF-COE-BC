@@ -567,10 +567,14 @@ export default function App() {
   }
 
   async function handleDeleteStudent(student) {
-    const prof = authUser?.email || curRole;
-    setStudents(prev => prev.filter(s => !(s.id === student.id && s.subj === student.subj && s.prof === prof)));
+    const shouldScopeToProf = ROLES[curRole]?.type !== 'dean';
+    setStudents(prev => prev.filter(s => !(s.id === student.id && s.subj === student.subj && s.prof === student.prof)));
     if (authUser) {
-      await deleteStudent({ id: student.id, subject: student.subj, prof: authUser.email });
+      await deleteStudent({
+        id: student.id,
+        subject: student.subj,
+        prof: shouldScopeToProf ? authUser.email : undefined,
+      });
     }
   }
 
