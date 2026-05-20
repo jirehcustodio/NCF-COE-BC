@@ -22,6 +22,7 @@ export default function MySubjects({
   const [newSubject, setNewSubject] = useState('');
   const [toast, setToast] = useState('');
   const [curriculumProgram, setCurriculumProgram] = useState(program || '');
+  const [curriculumYear, setCurriculumYear] = useState('');
   const [curriculumSearch, setCurriculumSearch] = useState('');
 
   useEffect(() => {
@@ -59,18 +60,25 @@ export default function MySubjects({
     return Array.from(new Set([...detected, ...defaults]));
   }, [curriculumSubjects]);
 
+  const curriculumYears = useMemo(() => {
+    const detected = curriculumSubjects.map(subject => subject.year).filter(Boolean);
+    const defaults = ['1st', '2nd', '3rd', '4th'];
+    return Array.from(new Set([...detected, ...defaults]));
+  }, [curriculumSubjects]);
+
   const curriculumRows = useMemo(() => {
     const filtered = curriculumSubjects.filter(subject => !curriculumProgram || subject.program === curriculumProgram);
+    const withYear = filtered.filter(subject => !curriculumYear || subject.year === curriculumYear);
     const term = curriculumSearch.trim().toLowerCase();
     const searched = term
-      ? filtered.filter(subject =>
+      ? withYear.filter(subject =>
         subject.code?.toLowerCase().includes(term)
         || subject.title?.toLowerCase().includes(term)
         || subject.year?.toLowerCase().includes(term)
         || subject.semester?.toLowerCase().includes(term))
-      : filtered;
+      : withYear;
     return searched.sort((a, b) => a.code.localeCompare(b.code));
-  }, [curriculumSubjects, curriculumProgram, curriculumSearch]);
+  }, [curriculumSubjects, curriculumProgram, curriculumYear, curriculumSearch]);
 
   const existingSubjectCodes = useMemo(() => new Set(subjects.map(item => item.code || item.subject)), [subjects]);
 
@@ -179,8 +187,8 @@ export default function MySubjects({
         </div>
       </div>
 
-      <div className={`modal-bg ${showCurriculum ? 'open' : ''}`}>
-        <div className="modal modal-lg">
+      <div className={`modal-bg ${showCurriculum ? 'open' : ''}`} onClick={() => setShowCurriculum(false)}>
+        <div className="modal modal-lg" onClick={event => event.stopPropagation()}>
           <div className="modal-hdr">
             <h3>Curriculum subjects</h3>
             <button className="close-btn" onClick={() => setShowCurriculum(false)}><i className="ti ti-x" /></button>
@@ -191,6 +199,15 @@ export default function MySubjects({
               <select value={curriculumProgram} onChange={event => setCurriculumProgram(event.target.value)}>
                 <option value="">All programs</option>
                 {curriculumPrograms.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+            <div className="row">
+              <span>Year</span>
+              <select value={curriculumYear} onChange={event => setCurriculumYear(event.target.value)}>
+                <option value="">All years</option>
+                {curriculumYears.map(option => (
                   <option key={option} value={option}>{option}</option>
                 ))}
               </select>
