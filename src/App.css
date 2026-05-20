@@ -296,6 +296,10 @@
 
 /* ---------- TABLE ---------- */
 .tbl-wrap { overflow-x: auto; }
+.modal-scroll {
+  max-height: 360px;
+  overflow-y: auto;
+}
 table { width: 100%; border-collapse: collapse; font-size: 12px; }
 th {
   text-align: left; padding: 8px 10px;

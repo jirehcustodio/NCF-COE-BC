@@ -28,24 +28,37 @@ export default function PeriodicalGradeRecording({
   const [selectedSection, setSelectedSection] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('Prelim');
   const [selectedInstructor, setSelectedInstructor] = useState('');
+  const [selectedProgram, setSelectedProgram] = useState('');
   const [fileName, setFileName] = useState('');
   const [gradeEdits, setGradeEdits] = useState({});
   const [lastSaved, setLastSaved] = useState('');
   const [toast, setToast] = useState('');
 
+  const programOptions = useMemo(() => {
+    const detected = availableStudents.map(s => s.program).filter(Boolean);
+    const defaults = ['BSCE', 'BSCpE', 'BSGE'];
+    return unique([...detected, ...defaults]);
+  }, [availableStudents]);
+
+  const programFilteredStudents = useMemo(() => (
+    selectedProgram
+      ? availableStudents.filter(student => student.program === selectedProgram)
+      : availableStudents
+  ), [availableStudents, selectedProgram]);
+
   const subjectOptions = useMemo(() => {
-    const fromStudents = availableStudents.map(s => s.subj).filter(Boolean);
+    const fromStudents = programFilteredStudents.map(s => s.subj).filter(Boolean);
     const fromSubjects = (subjects || []).map(subject => (typeof subject === 'string' ? subject : subject.code)).filter(Boolean);
     const fromSheets = (gradeSheets || []).map(sheet => sheet.subject).filter(Boolean);
     return unique([...fromSubjects, ...fromSheets, ...fromStudents]);
-  }, [availableStudents, subjects, gradeSheets]);
+  }, [programFilteredStudents, subjects, gradeSheets]);
   const sectionOptions = useMemo(() => {
-    const fromStudents = availableStudents.map(s => s.section || s.block || 'General');
+    const fromStudents = programFilteredStudents.map(s => s.section || s.block || 'General');
     const fromSheets = gradeSheets
       .filter(sheet => !selectedSubject || sheet.subject === selectedSubject)
       .map(sheet => sheet.section || 'General');
     return unique([...fromSheets, ...fromStudents]);
-  }, [availableStudents, gradeSheets, selectedSubject]);
+  }, [programFilteredStudents, gradeSheets, selectedSubject]);
 
   useEffect(() => {
     if (!selectedSubject && subjectOptions.length) {
@@ -68,7 +81,7 @@ export default function PeriodicalGradeRecording({
     return normalized === 'semifinal' ? 'semi' : normalized;
   }, [selectedPeriod]);
 
-  const filtered = availableStudents.filter(s =>
+  const filtered = programFilteredStudents.filter(s =>
     (!selectedSubject || s.subj === selectedSubject) &&
     (!selectedSection || (s.section || s.block || 'General') === selectedSection) &&
     (!selectedInstructor || s.prof === selectedInstructor)
@@ -166,6 +179,15 @@ export default function PeriodicalGradeRecording({
               </select>
             </div>
           )}
+          <div className="fg">
+            <label>Program</label>
+            <select value={selectedProgram} onChange={event => setSelectedProgram(event.target.value)}>
+              <option value="">All programs</option>
+              {programOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
           <div className="fg">
             <label>Subject</label>
             <select value={selectedSubject} onChange={event => setSelectedSubject(event.target.value)}>

@@ -9,7 +9,7 @@ export default function SiasDocs({ gradeSheets = [], curriculumSubjects = [], en
   const [program, setProgram] = useState('');
   const programOptions = useMemo(() => {
     const detected = curriculumSubjects.map(subject => subject.program).filter(Boolean);
-    const defaults = ['BSCE', 'BSEE', 'BSME', 'BSCpE'];
+    const defaults = ['BSCE', 'BSCpE', 'BSGE'];
     return Array.from(new Set([...detected, ...defaults]));
   }, [curriculumSubjects]);
 

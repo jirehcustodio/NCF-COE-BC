@@ -8,6 +8,7 @@ export default function Curriculum({ curriculumSubjects = [], onImportCurriculum
   const [importStatus, setImportStatus] = useState('idle');
   const [importNotice, setImportNotice] = useState(null);
   const [importDefaults, setImportDefaults] = useState({ program: 'BSCpE', year: '', semester: '' });
+  const programOptions = ['BSCE', 'BSCpE', 'BSGE'];
 
   const filteredCurriculum = curriculumSubjects.filter(s => !program || s.program === program);
   const previewRows = useMemo(() => importRows.slice(0, 8), [importRows]);
@@ -123,10 +124,9 @@ export default function Curriculum({ curriculumSubjects = [], onImportCurriculum
           <span className="ct">Curriculum / subjects</span>
           <select value={program} onChange={event => setProgram(event.target.value)}>
             <option value="">All programs</option>
-            <option value="BSCE">BSCE</option>
-            <option value="BSEE">BSEE</option>
-            <option value="BSME">BSME</option>
-            <option value="BSCpE">BSCpE</option>
+            {programOptions.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
           </select>
         </div>
         {filteredCurriculum.length === 0 ? (
@@ -188,10 +188,9 @@ export default function Curriculum({ curriculumSubjects = [], onImportCurriculum
               onChange={event => setImportDefaults(prev => ({ ...prev, program: event.target.value }))}
             >
               <option value="">Select program</option>
-              <option value="BSCpE">BSCpE</option>
-              <option value="BSCE">BSCE</option>
-              <option value="BSEE">BSEE</option>
-              <option value="BSME">BSME</option>
+              {programOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
             </select>
           </div>
           <div className="fg">

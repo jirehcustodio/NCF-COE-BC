@@ -31,6 +31,29 @@ create table if not exists public.curriculum_subjects (
   created_at timestamp with time zone default now()
 );
 
+create table if not exists public.sections (
+  id text primary key,
+  name text not null,
+  program text,
+  year text,
+  semester text,
+  created_at timestamp with time zone default now()
+);
+
+create table if not exists public.section_subjects (
+  section_id text not null references public.sections(id) on delete cascade,
+  subject_code text not null,
+  created_at timestamp with time zone default now(),
+  primary key (section_id, subject_code)
+);
+
+create table if not exists public.section_students (
+  section_id text not null references public.sections(id) on delete cascade,
+  student_id text not null,
+  created_at timestamp with time zone default now(),
+  primary key (section_id, student_id)
+);
+
 insert into public.curriculum_subjects (code, title, units, program, year, semester)
 values
   ('Math 111', 'Calculus 1 (Differential Calculus)', 3, 'BSCpE', '1st', '1st'),
@@ -161,6 +184,9 @@ create table if not exists public.user_profiles (
 alter table public.faculty_records enable row level security;
 alter table public.teaching_loads enable row level security;
 alter table public.curriculum_subjects enable row level security;
+alter table public.sections enable row level security;
+alter table public.section_subjects enable row level security;
+alter table public.section_students enable row level security;
 alter table public.enrollment_records enable row level security;
 alter table public.grade_sheets enable row level security;
 alter table public.subjects enable row level security;
@@ -202,6 +228,54 @@ create policy "curriculum_subjects_insert" on public.curriculum_subjects
 drop policy if exists "curriculum_subjects_update" on public.curriculum_subjects;
 create policy "curriculum_subjects_update" on public.curriculum_subjects
   for update using (auth.jwt()->'user_metadata'->>'role' = 'dean');
+
+drop policy if exists "sections_read" on public.sections;
+create policy "sections_read" on public.sections
+  for select using (true);
+
+drop policy if exists "sections_insert" on public.sections;
+create policy "sections_insert" on public.sections
+  for insert with check (auth.jwt()->'user_metadata'->>'role' = 'dean');
+
+drop policy if exists "sections_update" on public.sections;
+create policy "sections_update" on public.sections
+  for update using (auth.jwt()->'user_metadata'->>'role' = 'dean');
+
+drop policy if exists "sections_delete" on public.sections;
+create policy "sections_delete" on public.sections
+  for delete using (auth.jwt()->'user_metadata'->>'role' = 'dean');
+
+drop policy if exists "section_subjects_read" on public.section_subjects;
+create policy "section_subjects_read" on public.section_subjects
+  for select using (true);
+
+drop policy if exists "section_subjects_insert" on public.section_subjects;
+create policy "section_subjects_insert" on public.section_subjects
+  for insert with check (auth.jwt()->'user_metadata'->>'role' = 'dean');
+
+drop policy if exists "section_subjects_update" on public.section_subjects;
+create policy "section_subjects_update" on public.section_subjects
+  for update using (auth.jwt()->'user_metadata'->>'role' = 'dean');
+
+drop policy if exists "section_subjects_delete" on public.section_subjects;
+create policy "section_subjects_delete" on public.section_subjects
+  for delete using (auth.jwt()->'user_metadata'->>'role' = 'dean');
+
+drop policy if exists "section_students_read" on public.section_students;
+create policy "section_students_read" on public.section_students
+  for select using (true);
+
+drop policy if exists "section_students_insert" on public.section_students;
+create policy "section_students_insert" on public.section_students
+  for insert with check (auth.jwt()->'user_metadata'->>'role' = 'dean');
+
+drop policy if exists "section_students_update" on public.section_students;
+create policy "section_students_update" on public.section_students
+  for update using (auth.jwt()->'user_metadata'->>'role' = 'dean');
+
+drop policy if exists "section_students_delete" on public.section_students;
+create policy "section_students_delete" on public.section_students
+  for delete using (auth.jwt()->'user_metadata'->>'role' = 'dean');
 
 drop policy if exists "enrollment_records_read" on public.enrollment_records;
 create policy "enrollment_records_read" on public.enrollment_records
