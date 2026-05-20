@@ -17,9 +17,8 @@ export default function MySubjects({
 }) {
   const rd = ROLES[curRole];
   const myStudents = students;
-  const [showCreate, setShowCreate] = useState(false);
+  const [showAddSubject, setShowAddSubject] = useState(false);
   const [showCurriculum, setShowCurriculum] = useState(false);
-  const [newSubject, setNewSubject] = useState('');
   const [toast, setToast] = useState('');
   const [curriculumProgram, setCurriculumProgram] = useState(program || '');
   const [curriculumYear, setCurriculumYear] = useState('');
@@ -135,8 +134,8 @@ export default function MySubjects({
             <button className="btn sm" onClick={() => setShowCurriculum(true)}>
               <i className="ti ti-book" /> Curriculum
             </button>
-            <button className="btn pri sm" onClick={() => setShowCreate(true)}>
-              <i className="ti ti-plus" /> Create subject
+            <button className="btn pri sm" onClick={() => setShowAddSubject(true)}>
+              <i className="ti ti-plus" /> Add subject
             </button>
           </div>
         </div>
@@ -182,44 +181,86 @@ export default function MySubjects({
         </div>
       )}
 
-      <div className={`modal-bg ${showCreate ? 'open' : ''}`}>
-        <div className="modal">
+      <div className={`modal-bg ${showAddSubject ? 'open' : ''}`} onClick={() => setShowAddSubject(false)}>
+        <div className="modal modal-wide modal-minimal" onClick={event => event.stopPropagation()}>
           <div className="modal-hdr">
-            <h3>Create subject</h3>
-            <button className="close-btn" onClick={() => setShowCreate(false)}><i className="ti ti-x" /></button>
+            <h3>Add subject</h3>
+            <button className="close-btn" onClick={() => setShowAddSubject(false)}><i className="ti ti-x" /></button>
           </div>
-          <div className="form-grid">
-            <div className="fg">
-              <label>Subject code</label>
+          <div className="modal-meta">
+            <div className="row">
+              <span>Program</span>
+              <select value={curriculumProgram} onChange={event => setCurriculumProgram(event.target.value)}>
+                <option value="">All programs</option>
+                {curriculumPrograms.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+            <div className="row">
+              <span>Year</span>
+              <select value={curriculumYear} onChange={event => setCurriculumYear(event.target.value)}>
+                <option value="">All years</option>
+                {curriculumYears.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+            <div className="row">
+              <span>Search</span>
               <input
-                value={newSubject}
-                onChange={event => setNewSubject(event.target.value)}
-                placeholder="CE 401"
+                value={curriculumSearch}
+                onChange={event => setCurriculumSearch(event.target.value)}
+                placeholder="Search by code, title, year, or semester"
               />
             </div>
           </div>
-          <div className="modal-actions">
-            <button className="btn" onClick={() => setShowCreate(false)}>Cancel</button>
-            <button
-              className="btn pri"
-              onClick={() => {
-                const trimmed = newSubject.trim();
-                if (onCreateSubject && trimmed) {
-                  onCreateSubject(trimmed);
-                  setToast(`Subject ${trimmed} synced.`);
-                }
-                setNewSubject('');
-                setShowCreate(false);
-              }}
-            >
-              Create subject
-            </button>
-          </div>
+          {curriculumRows.length === 0 ? (
+            <EmptyState icon="ti-book">No curriculum subjects found.</EmptyState>
+          ) : (
+            <div className="tbl-wrap modal-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Title</th>
+                    <th>Units</th>
+                    <th>Year</th>
+                    <th>Semester</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {curriculumRows.map(row => {
+                    const exists = existingSubjectCodes.has(row.code);
+                    return (
+                      <tr key={`add-${row.code}`}>
+                        <td>{row.code}</td>
+                        <td>{row.title}</td>
+                        <td>{row.units}</td>
+                        <td>{row.year}</td>
+                        <td>{row.semester}</td>
+                        <td>
+                          <button
+                            className={`btn sm ${exists ? '' : 'pri'}`}
+                            disabled={exists}
+                            onClick={() => handleAddSubject(row.code)}
+                          >
+                            {exists ? 'Added' : 'Add subject'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 
       <div className={`modal-bg ${showCurriculum ? 'open' : ''}`} onClick={() => setShowCurriculum(false)}>
-        <div className="modal modal-lg" onClick={event => event.stopPropagation()}>
+        <div className="modal modal-wide modal-minimal" onClick={event => event.stopPropagation()}>
           <div className="modal-hdr">
             <h3>Curriculum subjects</h3>
             <button className="close-btn" onClick={() => setShowCurriculum(false)}><i className="ti ti-x" /></button>

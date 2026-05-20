@@ -300,6 +300,18 @@
   max-height: 360px;
   overflow-y: auto;
 }
+.modal-wide {
+  max-width: 980px;
+}
+.modal-minimal h3 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.modal-minimal .modal-meta .row span {
+  font-size: 11px;
+  color: var(--text-3);
+}
 table { width: 100%; border-collapse: collapse; font-size: 12px; }
 th {
   text-align: left; padding: 8px 10px;
