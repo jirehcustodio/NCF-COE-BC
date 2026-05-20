@@ -305,12 +305,10 @@ export default function MySubjects({
                     <th>Units</th>
                     <th>Year</th>
                     <th>Semester</th>
-                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {curriculumRows.map(row => {
-                    const exists = existingSubjectCodes.has(row.code);
                     return (
                       <tr
                         key={row.code}
@@ -328,15 +326,6 @@ export default function MySubjects({
                         <td>{row.units}</td>
                         <td>{row.year}</td>
                         <td>{row.semester}</td>
-                        <td>
-                          <button
-                            className={`btn sm ${exists ? '' : 'pri'}`}
-                            disabled={exists}
-                            onClick={() => handleAddSubject(row.code)}
-                          >
-                            {exists ? 'Added' : 'Add to my subjects'}
-                          </button>
-                        </td>
                       </tr>
                     );
                   })}

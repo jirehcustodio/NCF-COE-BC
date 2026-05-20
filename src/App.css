@@ -301,16 +301,30 @@
   overflow-y: auto;
 }
 .modal-wide {
-  max-width: 980px;
+  max-width: 1120px;
 }
 .modal-minimal h3 {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
+  color: var(--primary);
 }
 .modal-minimal .modal-meta .row span {
   font-size: 11px;
-  color: var(--text-3);
+  color: var(--primary-mid);
+}
+.modal-minimal {
+  background: #ffffff;
+  border: 1px solid rgba(128, 0, 32, 0.12);
+}
+.modal-minimal .modal-hdr {
+  border-bottom: 1px solid rgba(128, 0, 32, 0.12);
+}
+.modal-minimal .modal-hdr h3 {
+  text-transform: uppercase;
+}
+.modal-minimal table th {
+  color: var(--primary);
 }
 table { width: 100%; border-collapse: collapse; font-size: 12px; }
 th {
