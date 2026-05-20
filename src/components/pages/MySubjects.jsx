@@ -6,6 +6,8 @@ export default function MySubjects({
   students,
   curRole,
   subjects = [],
+  curriculumSubjects = [],
+  program,
   onUploadSubject,
   onEnrollSubject,
   onOpenSubject,
@@ -16,14 +18,23 @@ export default function MySubjects({
   const rd = ROLES[curRole];
   const myStudents = students;
   const [showCreate, setShowCreate] = useState(false);
+  const [showCurriculum, setShowCurriculum] = useState(false);
   const [newSubject, setNewSubject] = useState('');
   const [toast, setToast] = useState('');
+  const [curriculumProgram, setCurriculumProgram] = useState(program || '');
+  const [curriculumSearch, setCurriculumSearch] = useState('');
 
   useEffect(() => {
     if (!toast) return undefined;
     const timer = setTimeout(() => setToast(''), 2600);
     return () => clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    if (program) {
+      setCurriculumProgram(program);
+    }
+  }, [program]);
 
   const subjectCards = useMemo(() => {
     const map = new Map();
@@ -41,6 +52,27 @@ export default function MySubjects({
     });
     return Array.from(map.values()).sort((a, b) => a.subject.localeCompare(b.subject));
   }, [myStudents, subjects]);
+
+  const curriculumPrograms = useMemo(() => {
+    const detected = curriculumSubjects.map(subject => subject.program).filter(Boolean);
+    const defaults = ['BSCE', 'BSEE', 'BSME', 'BSCpE'];
+    return Array.from(new Set([...detected, ...defaults]));
+  }, [curriculumSubjects]);
+
+  const curriculumRows = useMemo(() => {
+    const filtered = curriculumSubjects.filter(subject => !curriculumProgram || subject.program === curriculumProgram);
+    const term = curriculumSearch.trim().toLowerCase();
+    const searched = term
+      ? filtered.filter(subject =>
+        subject.code?.toLowerCase().includes(term)
+        || subject.title?.toLowerCase().includes(term)
+        || subject.year?.toLowerCase().includes(term)
+        || subject.semester?.toLowerCase().includes(term))
+      : filtered;
+    return searched.sort((a, b) => a.code.localeCompare(b.code));
+  }, [curriculumSubjects, curriculumProgram, curriculumSearch]);
+
+  const existingSubjectCodes = useMemo(() => new Set(subjects.map(item => item.code || item.subject)), [subjects]);
 
   return (
     <>
@@ -61,19 +93,22 @@ export default function MySubjects({
               <i className={`ti ${refreshing ? 'ti-loader' : 'ti-refresh'}`} />
               {refreshing ? 'Refreshing...' : 'Refresh'}
             </button>
+            <button className="btn sm" onClick={() => setShowCurriculum(true)}>
+              <i className="ti ti-book" /> Curriculum
+            </button>
             <button className="btn pri sm" onClick={() => setShowCreate(true)}>
               <i className="ti ti-plus" /> Create subject
             </button>
           </div>
         </div>
         <Notice type="info" icon="ti-info-circle">
-          You can create a subject even before enrolling students.
+          Add subjects from your program curriculum or create one manually.
         </Notice>
       </div>
 
       {subjectCards.length === 0 ? (
         <EmptyState icon="ti-book">
-          No subjects yet. Enroll students to create your subject list.
+          No subjects yet. Enroll students or add a curriculum subject to build your list.
         </EmptyState>
       ) : (
         <div className="two-col">
@@ -141,6 +176,80 @@ export default function MySubjects({
               Create subject
             </button>
           </div>
+        </div>
+      </div>
+
+      <div className={`modal-bg ${showCurriculum ? 'open' : ''}`}>
+        <div className="modal modal-lg">
+          <div className="modal-hdr">
+            <h3>Curriculum subjects</h3>
+            <button className="close-btn" onClick={() => setShowCurriculum(false)}><i className="ti ti-x" /></button>
+          </div>
+          <div className="modal-meta">
+            <div className="row">
+              <span>Program</span>
+              <select value={curriculumProgram} onChange={event => setCurriculumProgram(event.target.value)}>
+                <option value="">All programs</option>
+                {curriculumPrograms.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+            <div className="row">
+              <span>Search</span>
+              <input
+                value={curriculumSearch}
+                onChange={event => setCurriculumSearch(event.target.value)}
+                placeholder="Search by code, title, year, or semester"
+              />
+            </div>
+          </div>
+          {curriculumRows.length === 0 ? (
+            <EmptyState icon="ti-book">No curriculum subjects found for this program.</EmptyState>
+          ) : (
+            <div className="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Title</th>
+                    <th>Units</th>
+                    <th>Year</th>
+                    <th>Semester</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {curriculumRows.map(row => {
+                    const exists = existingSubjectCodes.has(row.code);
+                    return (
+                      <tr key={row.code}>
+                        <td>{row.code}</td>
+                        <td>{row.title}</td>
+                        <td>{row.units}</td>
+                        <td>{row.year}</td>
+                        <td>{row.semester}</td>
+                        <td>
+                          <button
+                            className={`btn sm ${exists ? '' : 'pri'}`}
+                            disabled={exists}
+                            onClick={() => {
+                              if (onCreateSubject) {
+                                onCreateSubject(row.code);
+                                setToast(`Subject ${row.code} added.`);
+                              }
+                            }}
+                          >
+                            {exists ? 'Added' : 'Add to my subjects'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 

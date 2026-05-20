@@ -117,7 +117,7 @@ async function parseImageOcr(file) {
   return { rows: parseTextTable(text), confidence };
 }
 
-export default function EnrollStudent({ curRole, onEnroll, subjects = [], curriculumSubjects = [], initialSubject = '' }) {
+export default function EnrollStudent({ curRole, onEnroll, subjects = [], curriculumSubjects = [], initialSubject = '', program = '' }) {
   const rd = ROLES[curRole];
   const [uploadStatus, setUploadStatus] = useState('idle');
   const [uploadNotice, setUploadNotice] = useState(null);
@@ -131,12 +131,20 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
   const [enrollNotice, setEnrollNotice] = useState(null);
   const [manualStudent, setManualStudent] = useState({ id: '', name: '', program: '', section: '' });
 
+  const inferredProgram = useMemo(() => {
+    const firstProgram = stagedStudents.find(student => student.program)?.program;
+    return firstProgram || program || '';
+  }, [stagedStudents, program]);
+
   const subjectOptions = useMemo(() => {
     const fromSubjects = (subjects || []).map(item => (typeof item === 'string' ? item : item.code)).filter(Boolean);
     if (fromSubjects.length) return Array.from(new Set(fromSubjects));
-    const fromCurriculum = Array.from(new Set(curriculumSubjects.map(item => item.code))).filter(Boolean);
+    const filteredCurriculum = inferredProgram
+      ? curriculumSubjects.filter(item => item.program === inferredProgram)
+      : curriculumSubjects;
+    const fromCurriculum = Array.from(new Set(filteredCurriculum.map(item => item.code))).filter(Boolean);
     return fromCurriculum.length ? fromCurriculum : rd.subjects;
-  }, [subjects, curriculumSubjects, rd.subjects]);
+  }, [subjects, curriculumSubjects, rd.subjects, inferredProgram]);
 
   const filteredSubjects = useMemo(() => {
     if (!subjectSearch) return subjectOptions;

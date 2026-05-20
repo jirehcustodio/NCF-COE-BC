@@ -52,6 +52,7 @@ import {
 import Sidebar       from './components/Sidebar';
 import SuccessModal  from './components/SuccessModal';
 import Landing       from './components/Landing';
+import CreateAccount from './components/CreateAccount';
 import Onboarding    from './components/Onboarding';
 import ProfileModal  from './components/ProfileModal';
 
@@ -94,6 +95,7 @@ export default function App() {
   const [splashPhase, setSplashPhase] = useState('enter');
   const [showLanding, setShowLanding] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [curRole,    setCurRole]    = useState('dean');
   const [activePage, setActivePage] = useState('dashboard');
   const [students,   setStudents]   = useState(INITIAL_STUDENTS);
@@ -317,10 +319,20 @@ export default function App() {
   }
 
   if (showLanding) {
+    if (showCreateAccount) {
+      return (
+        <CreateAccount
+          onCreateAccount={handleCreateAccount}
+          onBack={() => setShowCreateAccount(false)}
+          authError={authError}
+          authLoading={authLoading}
+        />
+      );
+    }
     return (
       <Landing
         onLogin={handleLogin}
-        onCreateAccount={handleCreateAccount}
+        onOpenCreate={() => setShowCreateAccount(true)}
         authError={authError}
         authLoading={authLoading}
       />
@@ -382,6 +394,7 @@ export default function App() {
     setCurRole(role);
     setActivePage(ROLES[role].type === 'dean' ? 'dashboard' : 'mystudents');
     setShowLanding(false);
+    setShowCreateAccount(false);
     setShowOnboarding(shouldShowOnboarding(data.user));
   }
 
@@ -403,6 +416,7 @@ export default function App() {
     setCurRole(createdRole);
     setActivePage(ROLES[createdRole].type === 'dean' ? 'dashboard' : 'mystudents');
     setShowLanding(false);
+    setShowCreateAccount(false);
     setShowOnboarding(shouldShowOnboarding(data.session.user));
   }
 
@@ -799,6 +813,7 @@ export default function App() {
           students={students}
           subjects={allSubjects}
           curriculumSubjects={curriculumSubjects}
+          program={instructorProgram}
           initialSubject={enrollSubject}
           onEnroll={handleEnroll}
         />
@@ -809,6 +824,8 @@ export default function App() {
         <MySubjects
           {...props}
           subjects={subjects}
+          curriculumSubjects={curriculumSubjects}
+          program={instructorProgram}
           onCreateSubject={handleCreateSubject}
           onEnrollSubject={(subject) => {
             setEnrollSubject(subject);

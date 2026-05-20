@@ -1,11 +1,12 @@
 /* ============================================================
-   Landing.jsx — Splash landing/login for roles
+   CreateAccount.jsx — Dedicated account creation page
    ============================================================ */
 import React, { useState } from 'react';
 
-export default function Landing({ onLogin, onOpenCreate, authError, authLoading }) {
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
+export default function CreateAccount({ onCreateAccount, onBack, authError, authLoading }) {
+  const [createEmail, setCreateEmail] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createRole, setCreateRole] = useState('instructor');
 
   return (
     <div className="landing">
@@ -17,7 +18,7 @@ export default function Landing({ onLogin, onOpenCreate, authError, authLoading 
             style={{ backgroundImage: 'url(/logo.png)' }}
           />
           <div className="landing-org">NCF · College of Engineering</div>
-          <div className="landing-title">Blockchain Grade Recording System</div>
+          <div className="landing-title">Create an account</div>
         </div>
 
         <div className="landing-form">
@@ -25,33 +26,35 @@ export default function Landing({ onLogin, onOpenCreate, authError, authLoading 
           <input
             className="landing-input"
             placeholder="you@school.edu"
-            value={loginEmail}
-            onChange={event => setLoginEmail(event.target.value)}
+            value={createEmail}
+            onChange={event => setCreateEmail(event.target.value)}
           />
           <label className="landing-label">Password</label>
           <input
             className="landing-input"
             type="password"
-            placeholder="••••••••"
-            value={loginPassword}
-            onChange={event => setLoginPassword(event.target.value)}
+            placeholder="Create a password"
+            value={createPassword}
+            onChange={event => setCreatePassword(event.target.value)}
           />
+          <label className="landing-label">Choose role</label>
+          <select
+            className="landing-input"
+            value={createRole}
+            onChange={event => setCreateRole(event.target.value)}
+          >
+            <option value="dean">Dean</option>
+            <option value="instructor">Instructor</option>
+          </select>
 
           <div className="landing-actions">
+            <button className="btn" type="button" onClick={onBack}>
+              Back to sign in
+            </button>
             <button
               className="btn pri"
-              onClick={() => onLogin({ email: loginEmail, password: loginPassword })}
+              onClick={() => onCreateAccount({ email: createEmail, password: createPassword, role: createRole })}
               disabled={authLoading}
-            >
-              Sign in
-            </button>
-          </div>
-          <div className="landing-link-row">
-            <span>Don’t have an account?</span>
-            <button
-              className="landing-link-btn"
-              type="button"
-              onClick={onOpenCreate}
             >
               Create account
             </button>
