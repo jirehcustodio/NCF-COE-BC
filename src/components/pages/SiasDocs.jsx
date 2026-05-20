@@ -122,6 +122,7 @@ export default function SiasDocs({ gradeSheets = [], curriculumSubjects = [], en
             <option value="BSCE">BSCE</option>
             <option value="BSEE">BSEE</option>
             <option value="BSME">BSME</option>
+            <option value="BSCpE">BSCpE</option>
           </select>
         </div>
         {filteredCurriculum.length === 0 ? (

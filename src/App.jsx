@@ -27,6 +27,7 @@ import {
   fetchStudents,
   fetchTeachingLoads,
   fetchSubjects,
+  upsertCurriculumSubjects,
   insertBlock,
   insertLog,
   deleteStudent,
@@ -64,6 +65,7 @@ import Submissions  from './components/pages/Submissions';
 import Instructors  from './components/pages/Instructors';
 import FacultyRecords from './components/pages/FacultyRecords';
 import SiasDocs       from './components/pages/SiasDocs';
+import Curriculum     from './components/pages/Curriculum';
 import PeriodicalGradeRecording from './components/pages/PeriodicalGradeRecording';
 import FacultyGradeRecord from './components/pages/FacultyGradeRecord';
 import EnrollStudent from './components/pages/EnrollStudent';
@@ -111,6 +113,7 @@ export default function App() {
   const [enrollmentRecords, setEnrollmentRecords] = useState([]);
   const [gradeSheets, setGradeSheets] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [allSubjects, setAllSubjects] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const isDean = ROLES[curRole]?.type === 'dean';
@@ -241,6 +244,8 @@ export default function App() {
   const logsData = normalize(logsRes.data);
   const subjectsData = normalize(subjectsRes.data);
 
+      // Keep an unfiltered copy of subjects for pages that need to show all subjects
+      setAllSubjects(subjectsData);
       if (roleType === 'dean') {
         setStudents(studentsData);
         setBlocks(blocksData);
@@ -691,6 +696,36 @@ export default function App() {
     return nowLabel;
   }
 
+  async function handleImportCurriculum(rows) {
+    if (!rows?.length) return { added: 0 };
+    const normalized = rows
+      .filter(row => row.code && row.title)
+      .map(row => ({
+        code: String(row.code).trim(),
+        title: String(row.title).trim(),
+        units: row.units === '' || row.units === null || row.units === undefined ? null : Number(row.units),
+        program: row.program ? String(row.program).trim() : null,
+        year: row.year ? String(row.year).trim() : null,
+        semester: row.semester ? String(row.semester).trim() : null,
+      }));
+
+    if (!normalized.length) return { added: 0 };
+
+    setCurriculumSubjects(prev => {
+      const map = new Map(prev.map(item => [item.code, item]));
+      normalized.forEach(item => {
+        map.set(item.code, { ...map.get(item.code), ...item });
+      });
+      return Array.from(map.values()).sort((a, b) => a.code.localeCompare(b.code));
+    });
+
+    if (authUser) {
+      await upsertCurriculumSubjects(normalized);
+    }
+
+    return { added: normalized.length };
+  }
+
   /* ---- Render current page ---- */
   function renderPage() {
   const profKey = authUser?.email || curRole;
@@ -749,6 +784,9 @@ export default function App() {
       case 'siasdocs':       return isDean
         ? <SiasDocs {...academicProps} />
         : <MyStudents {...props} onNavigate={handleNavigate} onDeleteStudent={handleDeleteStudent} allowDelete />;
+      case 'curriculum':     return isDean
+        ? <Curriculum curriculumSubjects={curriculumSubjects} onImportCurriculum={handleImportCurriculum} />
+        : <MyStudents {...props} onNavigate={handleNavigate} onDeleteStudent={handleDeleteStudent} allowDelete />;
       case 'periodical':     return isDean
         ? <PeriodicalGradeRecording {...props} profKey={profKey} isDeanView onSavePeriodicalGrades={handleSavePeriodicalGrades} />
         : <PeriodicalGradeRecording {...props} profKey={profKey} onSavePeriodicalGrades={handleSavePeriodicalGrades} />;
@@ -759,7 +797,7 @@ export default function App() {
         <EnrollStudent
           curRole={curRole}
           students={students}
-          subjects={subjects}
+          subjects={allSubjects}
           curriculumSubjects={curriculumSubjects}
           initialSubject={enrollSubject}
           onEnroll={handleEnroll}

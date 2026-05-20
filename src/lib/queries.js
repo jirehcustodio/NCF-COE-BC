@@ -103,6 +103,10 @@ export async function fetchCurriculumSubjects() {
   return supabase.from('curriculum_subjects').select('*').order('code', { ascending: true });
 }
 
+export async function upsertCurriculumSubjects(payload) {
+  return supabase.from('curriculum_subjects').upsert(payload).select('*');
+}
+
 export async function fetchEnrollmentRecords() {
   return supabase.from('enrollment_records').select('*').order('name', { ascending: true });
 }
