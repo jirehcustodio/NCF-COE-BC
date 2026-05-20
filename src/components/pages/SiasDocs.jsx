@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -7,6 +7,11 @@ import { EmptyState, Notice } from '../Shared';
 export default function SiasDocs({ gradeSheets = [], curriculumSubjects = [], enrollmentRecords = [] }) {
   const [gradeStatus, setGradeStatus] = useState('');
   const [program, setProgram] = useState('');
+  const programOptions = useMemo(() => {
+    const detected = curriculumSubjects.map(subject => subject.program).filter(Boolean);
+    const defaults = ['BSCE', 'BSEE', 'BSME', 'BSCpE'];
+    return Array.from(new Set([...detected, ...defaults]));
+  }, [curriculumSubjects]);
 
   const filteredSheets = gradeSheets.filter(s => !gradeStatus || s.status === gradeStatus);
   const filteredCurriculum = curriculumSubjects.filter(s => !program || s.program === program);
@@ -119,9 +124,9 @@ export default function SiasDocs({ gradeSheets = [], curriculumSubjects = [], en
           <span className="ct">Curriculum / subjects</span>
           <select value={program} onChange={event => setProgram(event.target.value)}>
             <option value="">All programs</option>
-            <option value="BSCE">BSCE</option>
-            <option value="BSEE">BSEE</option>
-            <option value="BSME">BSME</option>
+            {programOptions.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
           </select>
         </div>
         {filteredCurriculum.length === 0 ? (

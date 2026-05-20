@@ -31,6 +31,80 @@ create table if not exists public.curriculum_subjects (
   created_at timestamp with time zone default now()
 );
 
+insert into public.curriculum_subjects (code, title, units, program, year, semester)
+values
+  ('Math 111', 'Calculus 1 (Differential Calculus)', 3, 'BSCpE', '1st', '1st'),
+  ('Chem 111', 'Chemistry for Engineers', 3, 'BSCpE', '1st', '1st'),
+  ('CpE 111', 'Computer Engineering as a Discipline', 3, 'BSCpE', '1st', '1st'),
+  ('CpE 112', 'Programming Logic and Design', 3, 'BSCpE', '1st', '1st'),
+  ('GEC 2', 'Understanding the Self', 3, 'BSCpE', '1st', '1st'),
+  ('GEC 4', 'Mathematics for the Modern World', 3, 'BSCpE', '1st', '1st'),
+  ('GEC 7', 'Science, Technology and Society', 3, 'BSCpE', '1st', '1st'),
+  ('PE 1', 'Physical Fitness', 2, 'BSCpE', '1st', '1st'),
+  ('NSTP 1', 'CWTS/ROTC 1', 3, 'BSCpE', '1st', '1st'),
+  ('Math 122', 'Calculus 2 (Integral Calculus)', 3, 'BSCpE', '1st', '2nd'),
+  ('Math 123', 'Engineering Data Analysis', 3, 'BSCpE', '1st', '2nd'),
+  ('Phys 121', 'Physics for Engineers (Calculus-based)', 4, 'BSCpE', '1st', '2nd'),
+  ('CpE 121', 'Discrete Mathematics', 3, 'BSCpE', '1st', '2nd'),
+  ('CpE 122', 'Object-Oriented Programming', 3, 'BSCpE', '1st', '2nd'),
+  ('GEC 3', 'Readings in the Philippine History', 3, 'BSCpE', '1st', '2nd'),
+  ('PE 2', 'Rhythmic Activities', 2, 'BSCpE', '1st', '2nd'),
+  ('NSTP 2', 'CWTS/ROTC 2', 3, 'BSCpE', '1st', '2nd'),
+  ('Math 213', 'Differential Equations', 3, 'BSCpE', '2nd', '1st'),
+  ('CpE 211', 'Data Structures and Algorithms', 2, 'BSCpE', '2nd', '1st'),
+  ('CpE 212', 'Computer-Aided Drafting', 2, 'BSCpE', '2nd', '1st'),
+  ('CpE 213', 'Engineering Economics', 3, 'BSCpE', '2nd', '1st'),
+  ('CpE 214', 'Fundamentals of Electrical Circuits', 4, 'BSCpE', '2nd', '1st'),
+  ('MCR 211', 'Life and Works of Rizal', 3, 'BSCpE', '2nd', '1st'),
+  ('GEC 1', 'Purposive Communication', 3, 'BSCpE', '2nd', '1st'),
+  ('GEC 9B', 'Living in the Information Technology Era', 3, 'BSCpE', '2nd', '1st'),
+  ('PE 3', 'Individual and Dual Sports', 2, 'BSCpE', '2nd', '1st'),
+  ('CpE 221', 'Software Design', 4, 'BSCpE', '2nd', '2nd'),
+  ('CpE 222', 'Fundamentals of Electronic Circuits', 4, 'BSCpE', '2nd', '2nd'),
+  ('CpE 223', 'Numerical Methods', 3, 'BSCpE', '2nd', '2nd'),
+  ('GEC 6', 'Arts Appreciation', 3, 'BSCpE', '2nd', '2nd'),
+  ('GEC 10B', 'Philippine Popular Culture', 3, 'BSCpE', '2nd', '2nd'),
+  ('IRC 221', 'NCEAN Development Program', 3, 'BSCpE', '2nd', '2nd'),
+  ('PE 4', 'Team Sports', 2, 'BSCpE', '2nd', '2nd'),
+  ('CpE 311', 'Logic Circuits and Design', 4, 'BSCpE', '3rd', '1st'),
+  ('CpE 312', 'Operating Systems', 3, 'BSCpE', '3rd', '1st'),
+  ('CpE 313', 'Data and Digital Communications', 3, 'BSCpE', '3rd', '1st'),
+  ('CpE 314', 'Feedback and Control Systems', 3, 'BSCpE', '3rd', '1st'),
+  ('CpE 315', 'Fundamentals of Mixed Signals and Sensors', 3, 'BSCpE', '3rd', '1st'),
+  ('CpE 316', 'Introduction to HDL', 1, 'BSCpE', '3rd', '1st'),
+  ('CpE 317', 'Computer Engineering Drafting and Design', 1, 'BSCpE', '3rd', '1st'),
+  ('CpE 318', 'System & Network Administration 1', 3, 'BSCpE', '3rd', '1st'),
+  ('CpE 319', 'Software Development 1', 3, 'BSCpE', '3rd', '1st'),
+  ('CpE 321', 'Computer Networks and Security', 4, 'BSCpE', '3rd', '2nd'),
+  ('CpE 322', 'Microprocessors', 4, 'BSCpE', '3rd', '2nd'),
+  ('CpE 323', 'CpE Laws and Professional Practice', 3, 'BSCpE', '3rd', '2nd'),
+  ('CpE 324', 'Basic Occupational Safety and Health', 3, 'BSCpE', '3rd', '2nd'),
+  ('CpE 325', 'System & Network Administration 2', 3, 'BSCpE', '3rd', '2nd'),
+  ('CpE 326', 'Software Development 2', 3, 'BSCpE', '3rd', '2nd'),
+  ('CpE 327', 'Methods of Research', 2, 'BSCpE', '3rd', '2nd'),
+  ('GEC 5', 'Contemporary World', 3, 'BSCpE', '3rd', '2nd'),
+  ('CpE 328', 'On-the-Job Training (min. of 240 hrs.)', 3, 'BSCpE', '4th', 'Summer'),
+  ('CpE 411', 'Embedded Systems', 4, 'BSCpE', '4th', '1st'),
+  ('CpE 412', 'Computer Architecture and Organization', 4, 'BSCpE', '4th', '1st'),
+  ('CpE 413', 'Digital Signal Processing', 4, 'BSCpE', '4th', '1st'),
+  ('CpE 414', 'Emerging Technologies in CpE', 3, 'BSCpE', '4th', '1st'),
+  ('CpE 415', 'Computer Engineering Practice and Design 1', 1, 'BSCpE', '4th', '1st'),
+  ('CpE 416', 'System & Network Administration 3', 3, 'BSCpE', '4th', '1st'),
+  ('CpE 417', 'Environmental Science and Engineering', 3, 'BSCpE', '4th', '1st'),
+  ('CpE 421', 'Computer Engineering Practice and Design 2', 2, 'BSCpE', '4th', '2nd'),
+  ('CpE 422', 'Seminars and Fieldtrips', 1, 'BSCpE', '4th', '2nd'),
+  ('CpE 423', 'Technopreneurship 101', 3, 'BSCpE', '4th', '2nd'),
+  ('CpE 424', 'Software Development 3', 3, 'BSCpE', '4th', '2nd'),
+  ('GEC 8', 'Ethics', 3, 'BSCpE', '4th', '2nd'),
+  ('IRC 422', 'Enhanced Skills in English for Effective Communication', 3, 'BSCpE', '4th', '2nd')
+on conflict (code) do update
+set
+  title = excluded.title,
+  units = excluded.units,
+  program = excluded.program,
+  year = excluded.year,
+  semester = excluded.semester;
+
 create table if not exists public.enrollment_records (
   id text primary key,
   name text not null,
@@ -120,6 +194,14 @@ create policy "teaching_loads_read" on public.teaching_loads
 drop policy if exists "curriculum_subjects_read" on public.curriculum_subjects;
 create policy "curriculum_subjects_read" on public.curriculum_subjects
   for select using (true);
+
+drop policy if exists "curriculum_subjects_insert" on public.curriculum_subjects;
+create policy "curriculum_subjects_insert" on public.curriculum_subjects
+  for insert with check (auth.jwt()->'user_metadata'->>'role' = 'dean');
+
+drop policy if exists "curriculum_subjects_update" on public.curriculum_subjects;
+create policy "curriculum_subjects_update" on public.curriculum_subjects
+  for update using (auth.jwt()->'user_metadata'->>'role' = 'dean');
 
 drop policy if exists "enrollment_records_read" on public.enrollment_records;
 create policy "enrollment_records_read" on public.enrollment_records
