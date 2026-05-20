@@ -107,6 +107,22 @@ export async function upsertCurriculumSubjects(payload) {
   return supabase.from('curriculum_subjects').upsert(payload).select('*');
 }
 
+export async function fetchSections() {
+  return supabase.from('sections').select('*').order('name', { ascending: true });
+}
+
+export async function upsertSection(payload) {
+  return supabase.from('sections').upsert(payload).select('*');
+}
+
+export async function upsertSectionSubjects(payload) {
+  return supabase.from('section_subjects').upsert(payload).select('*');
+}
+
+export async function upsertSectionStudents(payload) {
+  return supabase.from('section_students').upsert(payload).select('*');
+}
+
 export async function fetchEnrollmentRecords() {
   return supabase.from('enrollment_records').select('*').order('name', { ascending: true });
 }

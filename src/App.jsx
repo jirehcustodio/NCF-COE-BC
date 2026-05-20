@@ -127,7 +127,7 @@ export default function App() {
 
   const programOptions = useMemo(() => {
     const fromCurriculum = curriculumSubjects.map(subject => subject.program).filter(Boolean);
-    const defaults = ['BSCpE', 'BSCE', 'BSEE', 'BSME', 'BSIE', 'BSCS', 'BSIT'];
+    const defaults = ['BSCE', 'BSCpE', 'BSGE'];
     return Array.from(new Set([...fromCurriculum, ...defaults]));
   }, [curriculumSubjects]);
 

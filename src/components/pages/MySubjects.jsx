@@ -24,6 +24,8 @@ export default function MySubjects({
   const [curriculumProgram, setCurriculumProgram] = useState(program || '');
   const [curriculumYear, setCurriculumYear] = useState('');
   const [curriculumSearch, setCurriculumSearch] = useState('');
+  const [contextMenu, setContextMenu] = useState(null);
+  const [infoRow, setInfoRow] = useState(null);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -36,6 +38,19 @@ export default function MySubjects({
       setCurriculumProgram(program);
     }
   }, [program]);
+
+  useEffect(() => {
+    if (!contextMenu) return undefined;
+    const handleClose = () => setContextMenu(null);
+    window.addEventListener('click', handleClose);
+    window.addEventListener('scroll', handleClose);
+    window.addEventListener('resize', handleClose);
+    return () => {
+      window.removeEventListener('click', handleClose);
+      window.removeEventListener('scroll', handleClose);
+      window.removeEventListener('resize', handleClose);
+    };
+  }, [contextMenu]);
 
   const subjectCards = useMemo(() => {
     const map = new Map();
@@ -56,7 +71,7 @@ export default function MySubjects({
 
   const curriculumPrograms = useMemo(() => {
     const detected = curriculumSubjects.map(subject => subject.program).filter(Boolean);
-    const defaults = ['BSCE', 'BSEE', 'BSME', 'BSCpE'];
+    const defaults = ['BSCE', 'BSCpE', 'BSGE'];
     return Array.from(new Set([...detected, ...defaults]));
   }, [curriculumSubjects]);
 
@@ -81,6 +96,22 @@ export default function MySubjects({
   }, [curriculumSubjects, curriculumProgram, curriculumYear, curriculumSearch]);
 
   const existingSubjectCodes = useMemo(() => new Set(subjects.map(item => item.code || item.subject)), [subjects]);
+
+  function handleAddSubject(code) {
+    if (onCreateSubject) {
+      onCreateSubject(code);
+      setToast(`Subject ${code} added.`);
+    }
+  }
+
+  function handleCopy(code) {
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(code);
+      setToast(`Copied ${code}.`);
+    } else {
+      setToast('Copy not supported in this browser.');
+    }
+  }
 
   return (
     <>
@@ -224,7 +255,7 @@ export default function MySubjects({
           {curriculumRows.length === 0 ? (
             <EmptyState icon="ti-book">No curriculum subjects found for this program.</EmptyState>
           ) : (
-            <div className="tbl-wrap">
+            <div className="tbl-wrap modal-scroll">
               <table>
                 <thead>
                   <tr>
@@ -240,7 +271,17 @@ export default function MySubjects({
                   {curriculumRows.map(row => {
                     const exists = existingSubjectCodes.has(row.code);
                     return (
-                      <tr key={row.code}>
+                      <tr
+                        key={row.code}
+                        onContextMenu={(event) => {
+                          event.preventDefault();
+                          setContextMenu({
+                            x: event.clientX,
+                            y: event.clientY,
+                            row,
+                          });
+                        }}
+                      >
                         <td>{row.code}</td>
                         <td>{row.title}</td>
                         <td>{row.units}</td>
@@ -250,12 +291,7 @@ export default function MySubjects({
                           <button
                             className={`btn sm ${exists ? '' : 'pri'}`}
                             disabled={exists}
-                            onClick={() => {
-                              if (onCreateSubject) {
-                                onCreateSubject(row.code);
-                                setToast(`Subject ${row.code} added.`);
-                              }
-                            }}
+                            onClick={() => handleAddSubject(row.code)}
                           >
                             {exists ? 'Added' : 'Add to my subjects'}
                           </button>
@@ -269,6 +305,84 @@ export default function MySubjects({
           )}
         </div>
       </div>
+
+      {contextMenu && (
+        <div
+          className="context-menu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              handleAddSubject(contextMenu.row.code);
+              setContextMenu(null);
+            }}
+          >
+            <i className="ti ti-plus" /> Add to my subjects
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setInfoRow(contextMenu.row);
+              setContextMenu(null);
+            }}
+          >
+            <i className="ti ti-info-circle" /> View info
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              handleCopy(contextMenu.row.code);
+              setContextMenu(null);
+            }}
+          >
+            <i className="ti ti-copy" /> Copy code
+          </button>
+        </div>
+      )}
+
+      {infoRow && (
+        <div className="modal-bg open" onClick={() => setInfoRow(null)}>
+          <div className="modal" onClick={event => event.stopPropagation()}>
+            <div className="modal-hdr">
+              <h3>Curriculum info</h3>
+              <button className="close-btn" onClick={() => setInfoRow(null)}><i className="ti ti-x" /></button>
+            </div>
+            <div className="form-grid">
+              <div className="fg">
+                <label>Code</label>
+                <div className="muted-text">{infoRow.code}</div>
+              </div>
+              <div className="fg">
+                <label>Title</label>
+                <div className="muted-text">{infoRow.title}</div>
+              </div>
+              <div className="fg">
+                <label>Program</label>
+                <div className="muted-text">{infoRow.program}</div>
+              </div>
+              <div className="fg">
+                <label>Year</label>
+                <div className="muted-text">{infoRow.year}</div>
+              </div>
+              <div className="fg">
+                <label>Semester</label>
+                <div className="muted-text">{infoRow.semester}</div>
+              </div>
+              <div className="fg">
+                <label>Units</label>
+                <div className="muted-text">{infoRow.units ?? '—'}</div>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn" onClick={() => setInfoRow(null)}>Close</button>
+              <button className="btn pri" onClick={() => handleAddSubject(infoRow.code)}>
+                Add to my subjects
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className="toast">
