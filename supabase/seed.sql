@@ -18,7 +18,7 @@ values
   ('CpE 121', 'Discrete Mathematics', 3, 'BSCpE', '1st', '2nd'),
   ('CpE 122', 'Object-Oriented Programming', 3, 'BSCpE', '1st', '2nd'),
   ('GEC 3', 'Readings in the Philippine History', 3, 'BSCpE', '1st', '2nd'),
-  ('PE 2', 'Rhythmic Activities', 2, 'BSCpE', '1st', '2nd'),
+  ('PE 2', 'Rhythmic Activities',   2, 'BSCpE', '1st', '2nd'),
   ('NSTP 2', 'CWTS/ROTC 2', 3, 'BSCpE', '1st', '2nd'),
   ('Math 213', 'Differential Equations', 3, 'BSCpE', '2nd', '1st'),
   ('CpE 211', 'Data Structures and Algorithms', 2, 'BSCpE', '2nd', '1st'),
