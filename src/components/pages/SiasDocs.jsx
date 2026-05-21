@@ -19,7 +19,6 @@ export default function SiasDocs({ gradeSheets = [], curriculumSubjects = [], en
   function exportSheetsExcel() {
     const rows = filteredSheets.map(r => ({
       Subject: r.subject,
-      Section: r.section,
       Period: r.period,
       'Last Updated': r.lastUpdated || r.last_updated,
       Status: r.status,
@@ -35,10 +34,9 @@ export default function SiasDocs({ gradeSheets = [], curriculumSubjects = [], en
     doc.text('Grade Sheets', 14, 16);
     autoTable(doc, {
       startY: 22,
-      head: [['Subject', 'Section', 'Period', 'Last Updated', 'Status']],
+      head: [['Subject', 'Period', 'Last Updated', 'Status']],
       body: filteredSheets.map(r => [
         r.subject,
-        r.section,
         r.period,
         r.lastUpdated || r.last_updated,
         r.status,
@@ -76,7 +74,6 @@ export default function SiasDocs({ gradeSheets = [], curriculumSubjects = [], en
                 <thead>
                   <tr>
                     <th>Subject</th>
-                    <th>Section</th>
                     <th>Period</th>
                     <th>Last Updated</th>
                     <th>Status</th>
@@ -86,7 +83,6 @@ export default function SiasDocs({ gradeSheets = [], curriculumSubjects = [], en
                   {filteredSheets.map((r, i) => (
                     <tr key={`${r.subject}-${i}`}>
                       <td>{r.subject}</td>
-                      <td>{r.section}</td>
                       <td>{r.period}</td>
                       <td>{r.lastUpdated}</td>
                       <td>
@@ -175,7 +171,6 @@ export default function SiasDocs({ gradeSheets = [], curriculumSubjects = [], en
                   <th>Student ID</th>
                   <th>Name</th>
                   <th>Program</th>
-                  <th>Section</th>
                   <th>Status</th>
                   <th>Adviser</th>
                 </tr>
@@ -186,7 +181,6 @@ export default function SiasDocs({ gradeSheets = [], curriculumSubjects = [], en
                     <td className="hash">{row.id}</td>
                     <td>{row.name}</td>
                     <td>{row.program}</td>
-                    <td>{row.section}</td>
                     <td>
                       <span className={`badge ${row.status === 'Enrolled' ? 'ok' : 'pend'}`}>
                         <i className={`ti ${row.status === 'Enrolled' ? 'ti-check' : 'ti-clock'}`} />

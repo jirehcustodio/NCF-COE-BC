@@ -21,7 +21,6 @@ function getFieldMap(headers) {
     if (['student_id', 'id', 'studentid', 'no', 'no_'].includes(key)) map.id = i;
     if (['name', 'student_name'].includes(key)) map.name = i;
     if (['program', 'course'].includes(key)) map.program = i;
-    if (['section', 'sec'].includes(key)) map.section = i;
   });
   return map;
 }
@@ -48,7 +47,7 @@ function rowsToStudents(rows) {
   if (headerMatch) {
     headerIndex = headerMatch.index;
   } else {
-    map = { id: 0, name: 1, program: 2, section: 3 };
+    map = { id: 0, name: 1, program: 2 };
     usedFallback = true;
   }
 
@@ -66,7 +65,6 @@ function rowsToStudents(rows) {
       id: rawId ? String(rawId).trim() : '',
       name: String(name).trim(),
       program: row[map.program] ? String(row[map.program]).trim() : '',
-      section: row[map.section] ? String(row[map.section]).trim() : '',
     });
   }
 
@@ -119,6 +117,8 @@ async function parseImageOcr(file) {
 
 export default function EnrollStudent({ curRole, onEnroll, subjects = [], curriculumSubjects = [], initialSubject = '', program = '' }) {
   const rd = ROLES[curRole];
+  const programOptions = ['BSCpE', 'BSCE', 'BSGE'];
+  const studentIdPattern = /^\d{2}-\d{5}$/;
   const [uploadStatus, setUploadStatus] = useState('idle');
   const [uploadNotice, setUploadNotice] = useState(null);
   const [uploadTitle, setUploadTitle] = useState('Upload student list (CSV/XLSX, PDF, DOCX, OCR)');
@@ -129,7 +129,7 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
   const [selectedSubject, setSelectedSubject] = useState(initialSubject);
   const [subjectSearch, setSubjectSearch] = useState('');
   const [enrollNotice, setEnrollNotice] = useState(null);
-  const [manualStudent, setManualStudent] = useState({ id: '', name: '', program: '', section: '' });
+  const [manualStudent, setManualStudent] = useState({ id: '', name: '', program: '' });
 
   const inferredProgram = useMemo(() => {
     const firstProgram = stagedStudents.find(student => student.program)?.program;
@@ -137,14 +137,19 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
   }, [stagedStudents, program]);
 
   const subjectOptions = useMemo(() => {
-    const fromSubjects = (subjects || []).map(item => (typeof item === 'string' ? item : item.code)).filter(Boolean);
-    if (fromSubjects.length) return Array.from(new Set(fromSubjects));
+    const excluded = new Set(['CE 401', 'ENR 310', 'GEC 4']);
     const filteredCurriculum = inferredProgram
       ? curriculumSubjects.filter(item => item.program === inferredProgram)
       : curriculumSubjects;
-    const fromCurriculum = Array.from(new Set(filteredCurriculum.map(item => item.code))).filter(Boolean);
-    return fromCurriculum.length ? fromCurriculum : rd.subjects;
-  }, [subjects, curriculumSubjects, rd.subjects, inferredProgram]);
+    return Array.from(
+      new Set(
+        filteredCurriculum
+          .map(item => item.code)
+          .filter(Boolean)
+          .filter(code => !excluded.has(code)),
+      ),
+    );
+  }, [curriculumSubjects, inferredProgram]);
 
   const filteredSubjects = useMemo(() => {
     if (!subjectSearch) return subjectOptions;
@@ -204,8 +209,15 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
 
   function addManualStudent() {
     if (!manualStudent.name) return;
+    if (manualStudent.id && !studentIdPattern.test(manualStudent.id)) {
+      setEnrollNotice({
+        type: 'warn',
+        message: 'Student ID must follow the format XX-XXXXX (2 numbers + 5 digits).',
+      });
+      return;
+    }
     setStagedStudents(prev => [...prev, { ...manualStudent }]);
-    setManualStudent({ id: '', name: '', program: '', section: '' });
+    setManualStudent({ id: '', name: '', program: '' });
   }
 
   function openSubjectModal() {
@@ -280,7 +292,9 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
               <input
                 value={manualStudent.id}
                 onChange={e => setManualStudent(prev => ({ ...prev, id: e.target.value }))}
-                placeholder="2024-0001"
+                placeholder="12-34567"
+                pattern="\d{2}-\d{5}"
+                title="Use format XX-XXXXX (2 numbers + 5 digits)."
               />
             </div>
             <div className="fg">
@@ -293,19 +307,15 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
             </div>
             <div className="fg">
               <label>Program</label>
-              <input
+              <select
                 value={manualStudent.program}
                 onChange={e => setManualStudent(prev => ({ ...prev, program: e.target.value }))}
-                placeholder="BSCE"
-              />
-            </div>
-            <div className="fg">
-              <label>Section</label>
-              <input
-                value={manualStudent.section}
-                onChange={e => setManualStudent(prev => ({ ...prev, section: e.target.value }))}
-                placeholder="BSCE-3B"
-              />
+              >
+                <option value="">Select program</option>
+                {programOptions.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
             </div>
           </div>
           <button className="btn pri sm" onClick={addManualStudent}>
@@ -339,7 +349,6 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
                   <th>Student ID</th>
                   <th>Name</th>
                   <th>Program</th>
-                  <th>Section</th>
                 </tr>
               </thead>
               <tbody>
@@ -348,7 +357,6 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
                     <td className="hash">{student.id || '—'}</td>
                     <td style={{ fontWeight: 500 }}>{student.name}</td>
                     <td>{student.program || '—'}</td>
-                    <td>{student.section || '—'}</td>
                   </tr>
                 ))}
               </tbody>

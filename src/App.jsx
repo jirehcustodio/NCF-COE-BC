@@ -78,6 +78,7 @@ import InstructorSettings from './components/pages/InstructorSettings';
 import MyStudents   from './components/pages/MyStudents';
 import Upload       from './components/pages/Upload';
 import { MySubmissions, MyChain } from './components/pages/MySubmissions';
+import ActivityLog from './components/pages/ActivityLog';
 
 function genHash() {
   return '0x' + Math.random().toString(16).slice(2, 6) + '...' + Math.random().toString(16).slice(2, 6);
@@ -101,6 +102,7 @@ export default function App() {
   const [students,   setStudents]   = useState(INITIAL_STUDENTS);
   const [blocks,     setBlocks]     = useState(INITIAL_BLOCKS);
   const [logs,       setLogs]       = useState(INITIAL_LOGS);
+  const [auditLogs,  setAuditLogs]  = useState([]);
   const [nextBlock,  setNextBlock]  = useState(1049);
   const [modal,      setModal]      = useState(null);
   const [authUser,   setAuthUser]   = useState(null);
@@ -152,6 +154,21 @@ export default function App() {
     }
     return message;
   }
+
+  function logDeviceLogin(user) {
+    if (!user) return;
+    const ua = navigator.userAgent || '';
+    const newAuditLog = {
+      prof: user.email || user.id,
+      user: user.email || user.id,
+      userAgent: ua,
+      action: 'Login',
+      time: new Date().toISOString(),
+      ipAddress: 'Client IP (server-side tracking required)',
+      device: 'Browser Session',
+    };
+    setAuditLogs(prev => [...prev, newAuditLog]);
+  }
   useEffect(() => {
     if (!showSplash) return () => {};
     setSplashPhase('enter');
@@ -193,6 +210,7 @@ export default function App() {
         setActivePage(ROLES[role].type === 'dean' ? 'dashboard' : 'mystudents');
         setShowLanding(false);
         setShowOnboarding(shouldShowOnboarding(sessionUser));
+        logDeviceLogin(sessionUser);
       } else {
         setShowLanding(true);
         setShowOnboarding(false);
@@ -900,6 +918,7 @@ export default function App() {
       );
   case 'mysubmissions': return <MySubmissions {...props} profKey={profKey} />;
   case 'mychain':       return <MyChain       {...props} profKey={profKey} />;
+  case 'activitylog':   return <ActivityLog logs={logs} auditLogs={auditLogs} curRole={curRole} profKey={profKey} />;
 
       default: return <Dashboard {...props} />;
     }

@@ -25,7 +25,6 @@ export default function PeriodicalGradeRecording({
   const instructors = useMemo(() => unique(students.map(s => s.prof)), [students]);
 
   const [selectedSubject, setSelectedSubject] = useState('');
-  const [selectedSection, setSelectedSection] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('Prelim');
   const [selectedInstructor, setSelectedInstructor] = useState('');
   const [selectedProgram, setSelectedProgram] = useState('');
@@ -52,29 +51,11 @@ export default function PeriodicalGradeRecording({
     const fromSheets = (gradeSheets || []).map(sheet => sheet.subject).filter(Boolean);
     return unique([...fromSubjects, ...fromSheets, ...fromStudents]);
   }, [programFilteredStudents, subjects, gradeSheets]);
-  const sectionOptions = useMemo(() => {
-    const fromStudents = programFilteredStudents.map(s => s.section || s.block || 'General');
-    const fromSheets = gradeSheets
-      .filter(sheet => !selectedSubject || sheet.subject === selectedSubject)
-      .map(sheet => sheet.section || 'General');
-    return unique([...fromSheets, ...fromStudents]);
-  }, [programFilteredStudents, gradeSheets, selectedSubject]);
-
   useEffect(() => {
     if (!selectedSubject && subjectOptions.length) {
       setSelectedSubject(subjectOptions[0]);
     }
   }, [subjectOptions, selectedSubject]);
-
-  useEffect(() => {
-    if (!sectionOptions.length) {
-      setSelectedSection('');
-      return;
-    }
-    if (!selectedSection || !sectionOptions.includes(selectedSection)) {
-      setSelectedSection(sectionOptions[0]);
-    }
-  }, [sectionOptions, selectedSection]);
 
   const periodKey = useMemo(() => {
     const normalized = selectedPeriod.toLowerCase().replace('-', '');
@@ -83,7 +64,6 @@ export default function PeriodicalGradeRecording({
 
   const filtered = programFilteredStudents.filter(s =>
     (!selectedSubject || s.subj === selectedSubject) &&
-    (!selectedSection || (s.section || s.block || 'General') === selectedSection) &&
     (!selectedInstructor || s.prof === selectedInstructor)
   );
 
@@ -120,7 +100,6 @@ export default function PeriodicalGradeRecording({
       StudentID: row.id,
       Name: row.name,
       Subject: row.subj,
-      Section: row.section || row.block || 'General',
       Period: selectedPeriod,
       Grade: row[periodKey] ?? '',
     }));
@@ -135,12 +114,11 @@ export default function PeriodicalGradeRecording({
     doc.text(`Periodical Grades (${selectedPeriod})`, 14, 16);
     autoTable(doc, {
       startY: 22,
-      head: [['Student ID', 'Name', 'Subject', 'Section', 'Grade']],
+      head: [['Student ID', 'Name', 'Subject', 'Grade']],
       body: filtered.map(row => [
         row.id,
         row.name,
         row.subj,
-        row.section || row.block || 'General',
         row[periodKey] ?? '',
       ]),
     });
@@ -196,13 +174,6 @@ export default function PeriodicalGradeRecording({
             </select>
           </div>
           <div className="fg">
-            <label>Block/Section</label>
-            <select value={selectedSection} onChange={event => setSelectedSection(event.target.value)}>
-              <option value="">All sections</option>
-              {sectionOptions.map(sec => <option key={sec} value={sec}>{sec}</option>)}
-            </select>
-          </div>
-          <div className="fg">
             <label>Period</label>
             <select value={selectedPeriod} onChange={event => setSelectedPeriod(event.target.value)}>
               <option>Prelim</option>
@@ -245,7 +216,6 @@ export default function PeriodicalGradeRecording({
                   <th>Student ID</th>
                   <th>Name</th>
                   <th>Subject</th>
-                  <th>Section</th>
                   <th>{selectedPeriod}</th>
                 </tr>
               </thead>
@@ -255,7 +225,6 @@ export default function PeriodicalGradeRecording({
                     <td className="hash">{row.id}</td>
                     <td style={{ fontWeight: 600 }}>{row.name}</td>
                     <td>{row.subj}</td>
-                    <td>{row.section || row.block || 'General'}</td>
                     <td>
                       <input
                         className="grade-input"
