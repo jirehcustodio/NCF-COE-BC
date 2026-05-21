@@ -40,7 +40,7 @@ export default function FacultyRecords({ facultyRecords = [], teachingLoads = []
         <div className="sc purple">
           <div className="sl">Teaching loads</div>
           <div className="sv">{teachingLoads.length}</div>
-          <div className="ss">Active sections</div>
+          <div className="ss">Active assignments</div>
         </div>
       </div>
 
@@ -117,7 +117,6 @@ export default function FacultyRecords({ facultyRecords = [], teachingLoads = []
                 <tr>
                   <th>Faculty</th>
                   <th>Subject</th>
-                  <th>Section</th>
                   <th>Units</th>
                   <th>Schedule</th>
                 </tr>
@@ -127,7 +126,6 @@ export default function FacultyRecords({ facultyRecords = [], teachingLoads = []
                   <tr key={`${r.facultyId}-${i}`}>
                     <td style={{ fontWeight: 600 }}>{r.faculty}</td>
                     <td>{r.subject}</td>
-                    <td>{r.section}</td>
                     <td>{r.units}</td>
                     <td>{r.schedule}</td>
                   </tr>

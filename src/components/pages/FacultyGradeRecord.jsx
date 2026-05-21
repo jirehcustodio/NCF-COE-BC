@@ -16,16 +16,11 @@ export default function FacultyGradeRecord({ students, curRole, profKey, isDeanV
   const instructors = useMemo(() => Array.from(new Set(students.map(s => s.prof).filter(Boolean))), [students]);
   const [selectedInstructor, setSelectedInstructor] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
-  const [selectedSection, setSelectedSection] = useState('');
   const [studentQuery, setStudentQuery] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('Prelim');
 
   const subjectOptions = useMemo(
     () => Array.from(new Set(students.map(s => s.subj).filter(Boolean))),
-    [students]
-  );
-  const sectionOptions = useMemo(
-    () => Array.from(new Set(students.map(s => s.section || s.block || 'General').filter(Boolean))),
     [students]
   );
   const periodKey = useMemo(() => {
@@ -37,16 +32,14 @@ export default function FacultyGradeRecord({ students, curRole, profKey, isDeanV
   const filtered = students.filter(s => {
     const matchesInstructor = isDeanView ? (!selectedInstructor || s.prof === selectedInstructor) : s.prof === activeProf;
     const matchesSubject = !selectedSubject || s.subj === selectedSubject;
-    const matchesSection = !selectedSection || (s.section || s.block || 'General') === selectedSection;
     const idValue = (s.id || '').toLowerCase();
     const matchesStudent = !studentQuery || idValue.includes(studentQuery.toLowerCase());
-    return matchesInstructor && matchesSubject && matchesSection && matchesStudent;
+    return matchesInstructor && matchesSubject && matchesStudent;
   });
 
   function exportExcel() {
     const rows = filtered.map(row => ({
       Subject: row.subj,
-      Section: row.section || row.block || 'General',
       StudentID: row.id,
       Period: selectedPeriod,
       PeriodGrade: row[periodKey] ?? '',
@@ -66,10 +59,9 @@ export default function FacultyGradeRecord({ students, curRole, profKey, isDeanV
     doc.text('Faculty Grade Record', 14, 16);
     autoTable(doc, {
       startY: 22,
-      head: [['Subject', 'Section', 'Student ID', 'Period', 'Period Grade', 'Faculty Encoder', 'Date Encoded', 'Verification', 'Access']],
+      head: [['Subject', 'Student ID', 'Period', 'Period Grade', 'Faculty Encoder', 'Date Encoded', 'Verification', 'Access']],
       body: filtered.map(row => [
         row.subj,
-        row.section || row.block || 'General',
         row.id,
         selectedPeriod,
         row[periodKey] ?? '',
@@ -105,10 +97,6 @@ export default function FacultyGradeRecord({ students, curRole, profKey, isDeanV
               <tr>
                 <td>Course Code / Subject</td>
                 <td>Identifies the subject handled by the faculty member</td>
-              </tr>
-              <tr>
-                <td>Section</td>
-                <td>Identifies the class group</td>
               </tr>
               <tr>
                 <td>Student Identifier</td>
@@ -162,12 +150,6 @@ export default function FacultyGradeRecord({ students, curRole, profKey, isDeanV
               <option key={subject} value={subject}>{subject}</option>
             ))}
           </select>
-          <select value={selectedSection} onChange={event => setSelectedSection(event.target.value)}>
-            <option value="">All sections</option>
-            {sectionOptions.map(section => (
-              <option key={section} value={section}>{section}</option>
-            ))}
-          </select>
           <input
             placeholder="Student identifier"
             value={studentQuery}
@@ -188,7 +170,6 @@ export default function FacultyGradeRecord({ students, curRole, profKey, isDeanV
               <thead>
                 <tr>
                   <th>Course Code / Subject</th>
-                  <th>Section</th>
                   <th>Student Identifier</th>
                   <th>Periodical Grade</th>
                   <th>Faculty Encoder</th>
@@ -201,7 +182,6 @@ export default function FacultyGradeRecord({ students, curRole, profKey, isDeanV
                 {filtered.map(row => (
                   <tr key={row.id}>
                     <td>{row.subj}</td>
-                    <td>{row.section || row.block || 'General'}</td>
                     <td className="hash">{row.id}</td>
                     <td>{row[periodKey] ?? '—'}</td>
                     <td>{ROLES[row.prof]?.name || row.prof}</td>

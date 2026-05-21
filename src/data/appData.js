@@ -56,6 +56,7 @@ export const DEAN_NAV = [
     items: [
       { id: 'submissions', icon: 'ti-clipboard-check', label: 'Submissions Log' },
       { id: 'instructors', icon: 'ti-user-check',      label: 'Instructors' },
+      { id: 'activitylog', icon: 'ti-shield-alert',    label: 'Activity Log & Security' },
     ],
   },
 ];
@@ -88,7 +89,8 @@ export const PROF_NAV = [
   {
     sec: 'Account',
     items: [
-      { id: 'settings', icon: 'ti-settings', label: 'Settings' },
+      { id: 'settings',    icon: 'ti-settings',       label: 'Settings' },
+      { id: 'activitylog', icon: 'ti-shield-alert',   label: 'Activity Log & Security' },
     ],
   },
 ];

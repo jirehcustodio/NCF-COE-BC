@@ -182,7 +182,7 @@ export default function MySubjects({
       )}
 
       <div className={`modal-bg ${showAddSubject ? 'open' : ''}`} onClick={() => setShowAddSubject(false)}>
-        <div className="modal modal-wide modal-minimal" onClick={event => event.stopPropagation()}>
+  <div className="modal modal-wide modal-minimal modal-add-subject" onClick={event => event.stopPropagation()}>
           <div className="modal-hdr">
             <h3>Add subject</h3>
             <button className="close-btn" onClick={() => setShowAddSubject(false)}><i className="ti ti-x" /></button>
@@ -216,10 +216,13 @@ export default function MySubjects({
             </div>
           </div>
           {curriculumRows.length === 0 ? (
-            <EmptyState icon="ti-book">No curriculum subjects found.</EmptyState>
+            <div className="modal-content">
+              <EmptyState icon="ti-book">No curriculum subjects found.</EmptyState>
+            </div>
           ) : (
-            <div className="tbl-wrap">
-              <table>
+            <div className="modal-content">
+              <div className="tbl-wrap">
+                <table>
                 <thead>
                   <tr>
                     <th>Code</th>
@@ -254,6 +257,7 @@ export default function MySubjects({
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </div>
