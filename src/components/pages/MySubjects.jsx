@@ -218,7 +218,7 @@ export default function MySubjects({
           {curriculumRows.length === 0 ? (
             <EmptyState icon="ti-book">No curriculum subjects found.</EmptyState>
           ) : (
-            <div className="tbl-wrap modal-scroll">
+            <div className="tbl-wrap">
               <table>
                 <thead>
                   <tr>
@@ -296,7 +296,7 @@ export default function MySubjects({
           {curriculumRows.length === 0 ? (
             <EmptyState icon="ti-book">No curriculum subjects found for this program.</EmptyState>
           ) : (
-            <div className="tbl-wrap modal-scroll">
+            <div className="tbl-wrap">
               <table>
                 <thead>
                   <tr>
