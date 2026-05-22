@@ -159,8 +159,30 @@ export default function App() {
     if (!user) return;
     const ua = navigator.userAgent || '';
     
+    // Store user email for later use in other components
+    localStorage.setItem('currentUserEmail', user.email || user.id);
+    
+    // Helper: Save audit log (both in-memory and localStorage)
+    const saveAuditLog = (log) => {
+      setAuditLogs(prev => [...prev, log]);
+      
+      // Also persist to localStorage for offline consistency
+      try {
+        const stored = localStorage.getItem('auditLogs');
+        const existing = stored ? JSON.parse(stored) : [];
+        // Avoid duplicates
+        const isDuplicate = existing.some(l => l.prof === log.prof && l.time === log.time && l.action === log.action);
+        if (!isDuplicate) {
+          existing.push(log);
+          localStorage.setItem('auditLogs', JSON.stringify(existing));
+        }
+      } catch (e) {
+        console.error('Failed to save audit log to localStorage:', e);
+      }
+    };
+    
     // Fetch client IP from a public API
-    fetch('https://api.ipify.org?format=json')
+    fetch('https://api.ipify.org?format=json', { timeout: 5000 })
       .then(res => res.json())
       .then(data => {
         const newAuditLog = {
@@ -172,7 +194,7 @@ export default function App() {
           ipAddress: data.ip || 'Unable to fetch IP',
           device: 'Browser Session',
         };
-        setAuditLogs(prev => [...prev, newAuditLog]);
+        saveAuditLog(newAuditLog);
       })
       .catch(() => {
         const newAuditLog = {
@@ -184,9 +206,29 @@ export default function App() {
           ipAddress: 'IP detection unavailable',
           device: 'Browser Session',
         };
-        setAuditLogs(prev => [...prev, newAuditLog]);
+        saveAuditLog(newAuditLog);
       });
   }
+
+  function logEnrollmentActivity(enrollmentLog) {
+    if (!enrollmentLog) return;
+    
+    // Save to both in-memory and localStorage
+    setAuditLogs(prev => [...prev, enrollmentLog]);
+    
+    try {
+      const stored = localStorage.getItem('auditLogs');
+      const existing = stored ? JSON.parse(stored) : [];
+      const isDuplicate = existing.some(l => l.prof === enrollmentLog.prof && l.time === enrollmentLog.time && l.action === enrollmentLog.action);
+      if (!isDuplicate) {
+        existing.push(enrollmentLog);
+        localStorage.setItem('auditLogs', JSON.stringify(existing));
+      }
+    } catch (e) {
+      console.error('Failed to save enrollment log to localStorage:', e);
+    }
+  }
+  
   useEffect(() => {
     if (!showSplash) return () => {};
     setSplashPhase('enter');
@@ -852,6 +894,7 @@ export default function App() {
           program={instructorProgram}
           initialSubject={enrollSubject}
           onEnroll={handleEnroll}
+          onEnrollmentLogged={logEnrollmentActivity}
         />
       );
 
@@ -936,7 +979,7 @@ export default function App() {
       );
   case 'mysubmissions': return <MySubmissions {...props} profKey={profKey} />;
   case 'mychain':       return <MyChain       {...props} profKey={profKey} />;
-  case 'activitylog':   return <ActivityLog logs={logs} auditLogs={auditLogs} curRole={curRole} profKey={profKey} />;
+  case 'activitylog':   return <ActivityLog logs={logs} auditLogs={auditLogs} setAuditLogs={setAuditLogs} curRole={curRole} profKey={profKey} />;
 
       default: return <Dashboard {...props} />;
     }

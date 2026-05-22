@@ -115,7 +115,7 @@ async function parseImageOcr(file) {
   return { rows: parseTextTable(text), confidence };
 }
 
-export default function EnrollStudent({ curRole, onEnroll, subjects = [], curriculumSubjects = [], initialSubject = '', program = '' }) {
+export default function EnrollStudent({ curRole, onEnroll, subjects = [], curriculumSubjects = [], initialSubject = '', program = '', onEnrollmentLogged }) {
   const rd = ROLES[curRole];
   const programOptions = ['BSCpE', 'BSCE', 'BSGE'];
   const studentIdPattern = /^\d{2}-\d{5}$/;
@@ -300,6 +300,26 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
       };
     });
     const result = onEnroll({ students: normalized, subject }) || { added: 0, skipped: 0 };
+    
+    // Log enrollment activity for audit trail
+    if (onEnrollmentLogged && result.added > 0) {
+      try {
+        const enrollmentLog = {
+          prof: localStorage.getItem('currentUserEmail') || 'Unknown',
+          user: localStorage.getItem('currentUserEmail') || 'Unknown',
+          userAgent: navigator.userAgent,
+          action: 'Enrollment',
+          time: new Date().toISOString(),
+          desc: `${result.added} student(s) enrolled in ${subjectInfo?.fullName || subject}`,
+          ipAddress: 'IP detection in audit trail',
+          device: 'Browser Session',
+        };
+        onEnrollmentLogged(enrollmentLog);
+      } catch (e) {
+        console.error('Failed to log enrollment activity:', e);
+      }
+    }
+    
     if (result.skipped > 0) {
       setEnrollNotice({
         type: 'warn',
