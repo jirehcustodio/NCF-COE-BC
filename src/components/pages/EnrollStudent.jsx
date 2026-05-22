@@ -141,21 +141,53 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
     const filteredCurriculum = inferredProgram
       ? curriculumSubjects.filter(item => item.program === inferredProgram)
       : curriculumSubjects;
+    
+    // Return full subject objects with code + title
     return Array.from(
-      new Set(
+      new Map(
         filteredCurriculum
-          .map(item => item.code)
-          .filter(Boolean)
-          .filter(code => !excluded.has(code)),
-      ),
-    );
+          .filter(item => item.code && !excluded.has(item.code))
+          .map(item => [
+            item.code,
+            {
+              code: item.code,
+              title: item.title || item.code,
+              fullName: `${item.code} - ${item.title || item.code}`,
+            }
+          ])
+      ).values()
+    ).sort((a, b) => a.code.localeCompare(b.code));
   }, [curriculumSubjects, inferredProgram]);
 
   const filteredSubjects = useMemo(() => {
     if (!subjectSearch) return subjectOptions;
     const term = subjectSearch.toLowerCase();
-    return subjectOptions.filter(option => option.toLowerCase().includes(term));
+    return subjectOptions.filter(option => 
+      option.code.toLowerCase().includes(term) || 
+      option.title.toLowerCase().includes(term)
+    );
   }, [subjectOptions, subjectSearch]);
+
+  // Load staged students from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('enrollStagedStudents');
+    if (saved) {
+      try {
+        setStagedStudents(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load staged students', e);
+      }
+    }
+  }, []);
+
+  // Save staged students to localStorage whenever they change
+  useEffect(() => {
+    if (stagedStudents.length > 0) {
+      localStorage.setItem('enrollStagedStudents', JSON.stringify(stagedStudents));
+    } else {
+      localStorage.removeItem('enrollStagedStudents');
+    }
+  }, [stagedStudents]);
 
   useEffect(() => {
     if (initialSubject) setSelectedSubject(initialSubject);
@@ -229,7 +261,18 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
   }
 
   function confirmEnrollment() {
+    if (!selectedSubject) {
+      setEnrollNotice({
+        type: 'warn',
+        message: 'Please select a subject to enroll students.',
+      });
+      return;
+    }
+    
+    // Get the full subject info
+    const subjectInfo = subjectOptions.find(s => s.code === selectedSubject);
     const subject = selectedSubject || 'Unspecified';
+    
     const normalized = stagedStudents.map((student, index) => {
       const id = student.id || `TEMP-${Date.now()}-${index}`;
       return {
@@ -245,11 +288,13 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
         message: `${result.skipped} duplicate student(s) were skipped for this subject.`,
       });
     } else {
-      setEnrollNotice({ type: 'suc', message: `${result.added} student(s) enrolled.` });
+      setEnrollNotice({ type: 'suc', message: `${result.added} student(s) enrolled in ${subjectInfo?.fullName || subject}.` });
     }
     setShowModal(false);
     setStagedStudents([]);
+    localStorage.removeItem('enrollStagedStudents');
     setMissingIds(0);
+    setSelectedSubject('');
   }
 
   return (
@@ -393,13 +438,16 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
                 <input
                   value={subjectSearch}
                   onChange={e => setSubjectSearch(e.target.value)}
-                  placeholder="Search subject"
+                  placeholder="Search subject code or name"
                   style={{ marginBottom: 8 }}
                 />
                 <select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)}>
+                  <option value="">-- Select Subject --</option>
                   {filteredSubjects.length ? (
                     filteredSubjects.map(subject => (
-                      <option key={subject} value={subject}>{subject}</option>
+                      <option key={subject.code} value={subject.code}>
+                        {subject.fullName}
+                      </option>
                     ))
                   ) : (
                     <option value="" disabled>No matching subjects</option>
@@ -410,7 +458,7 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
               <div className="fg">
                 <label>Subject</label>
                 <Notice type="warn" icon="ti-alert-triangle">
-                  No subjects found. Please create a subject first.
+                  No subjects found for {inferredProgram || 'selected program'}. Please create subjects first or change student program.
                 </Notice>
               </div>
             )}
