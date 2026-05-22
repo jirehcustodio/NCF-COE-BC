@@ -134,7 +134,7 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
             transition: 'all 0.2s',
           }}
         >
-          <i className="ti ti-shield-alert" /> Account Security ({myAuditLogs.length})
+          <i className="ti ti-shield-alert" /> Account Security ({allAuditLogsEnriched.length})
         </button>
       </div>
 
