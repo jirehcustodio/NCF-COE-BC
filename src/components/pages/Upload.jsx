@@ -435,14 +435,26 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
 
   async function handleGradeFile(file) {
     const { label } = getMethod(file.name);
+    
+    // File size validation
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+    if (file.size > MAX_FILE_SIZE) {
+      setGradeNotice({
+        type: 'err',
+        message: `File size exceeds 50 MB limit. Current: ${(file.size / 1024 / 1024).toFixed(2)} MB`,
+      });
+      setGradeStatus('idle');
+      return;
+    }
+
     setGradeStatus('loading');
     setGradeTitle(file.name);
     setGradeSub(`Processing via ${label}...`);
     setGradeNotice(null);
     setOcrMeta(null);
-  setOcrPreview(null);
+    setOcrPreview(null);
     setParseWarnings([]);
-  setDetectedTemplate(null);
+    setDetectedTemplate(null);
     try {
       const ext = file.name.split('.').pop().toLowerCase();
       let rows = [];
@@ -469,7 +481,12 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
         throw new Error('Unsupported file type for parsing.');
       }
 
-  const { map, count, meta } = rowsToGradeMap(rows, { students: myStudents, period });
+      // Warn if too many rows
+      if (rows.length > 5000) {
+        setParseWarnings(prev => [...prev, `⚠️ Large file detected (${rows.length} rows). Processing may take a moment...`]);
+      }
+
+      const { map, count, meta } = rowsToGradeMap(rows, { students: myStudents, period });
       const template = detectTemplate(meta?.headerNormalized);
       const init = {};
       myStudents.forEach(s => {
@@ -668,6 +685,9 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
               onFile={handleGradeFile}
               status={gradeStatus}
             />
+            <Notice type="info" icon="ti-info-circle">
+              📊 <strong>Large file support:</strong> Supports up to 50 MB files and 10,000+ rows. Processing large files may take a moment.
+            </Notice>
             {gradeNotice && (
               <Notice type={gradeNotice.type} icon={gradeNotice.type === 'err' ? 'ti-alert-circle' : 'ti-check'}>
                 {gradeNotice.type === 'err'

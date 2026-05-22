@@ -195,6 +195,18 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
 
   async function handleFile(file) {
     if (!file) return;
+    
+    // File size validation
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+    if (file.size > MAX_FILE_SIZE) {
+      setUploadNotice({
+        type: 'err',
+        message: `File size exceeds 50 MB limit. Current: ${(file.size / 1024 / 1024).toFixed(2)} MB`,
+      });
+      setUploadStatus('idle');
+      return;
+    }
+
     setUploadStatus('loading');
     setUploadTitle(file.name);
     setUploadSub('Processing student list...');
@@ -218,16 +230,22 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
         throw new Error('Unsupported file type for enrollment.');
       }
 
+      // Warn if too many rows
+      if (rows.length > 5000) {
+        console.warn(`Large file: ${rows.length} rows detected`);
+      }
+
       const { students, missingIds: missing, usedFallback } = rowsToStudents(rows);
       setStagedStudents(students);
       setMissingIds(missing);
       setUploadStatus('done');
-  setUploadSub(`✓ Parsed ${students.length} students`);
+      setUploadSub(`✓ Parsed ${students.length} students`);
 
       const warnings = [];
-      if (usedFallback) warnings.push('Header not detected; used default columns (ID, Name, Program, Section).');
+      if (usedFallback) warnings.push('Header not detected; used default columns (ID, Name, Program).');
       if (missing) warnings.push(`Missing student ID in ${missing} rows.`);
       if (confidence !== null && confidence < 80) warnings.push(`Low OCR confidence (${Math.round(confidence)}%).`);
+      if (students.length > 5000) warnings.push(`⚠️ Large file detected (${students.length} students). Processing may take a moment.`);
 
       setUploadNotice({ type: warnings.length ? 'warn' : 'suc', message: warnings.length ? warnings.join(' ') : 'Student list parsed successfully.' });
     } catch (err) {
