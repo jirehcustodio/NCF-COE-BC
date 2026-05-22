@@ -155,20 +155,97 @@ export default function App() {
     return message;
   }
 
+  const [lastLoggedInUser, setLastLoggedInUser] = useState(null);
+
   function logDeviceLogin(user) {
     if (!user) return;
+    
+    // Only log if this is a new login (different from the last logged user)
+    // This prevents duplicate logs on page refresh or auth state changes
+    if (lastLoggedInUser === user.email || lastLoggedInUser === user.id) {
+      return; // Already logged this session
+    }
+    
     const ua = navigator.userAgent || '';
-    const newAuditLog = {
-      prof: user.email || user.id,
-      user: user.email || user.id,
-      userAgent: ua,
-      action: 'Login',
-      time: new Date().toISOString(),
-      ipAddress: 'Client IP (server-side tracking required)',
-      device: 'Browser Session',
+    
+    // Store user email for later use in other components
+    localStorage.setItem('currentUserEmail', user.email || user.id);
+    
+    // Track this user as logged in
+    setLastLoggedInUser(user.email || user.id);
+    
+    // Helper: Save audit log (both in-memory and localStorage)
+    const saveAuditLog = (log) => {
+      setAuditLogs(prev => [...prev, log]);
+      
+      // Also persist to localStorage for offline consistency
+      try {
+        const stored = localStorage.getItem('auditLogs');
+        const existing = stored ? JSON.parse(stored) : [];
+        // Avoid duplicates by checking within last 2 minutes (120 seconds)
+        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+        const isDuplicate = existing.some(
+          l => l.prof === log.prof && 
+               l.action === log.action && 
+               l.time > twoMinutesAgo
+        );
+        if (!isDuplicate) {
+          existing.push(log);
+          localStorage.setItem('auditLogs', JSON.stringify(existing));
+        }
+      } catch (e) {
+        console.error('Failed to save audit log to storage:', e);
+      }
     };
-    setAuditLogs(prev => [...prev, newAuditLog]);
+    
+    // Fetch client IP from a public API
+    fetch('https://api.ipify.org?format=json', { timeout: 5000 })
+      .then(res => res.json())
+      .then(data => {
+        const newAuditLog = {
+          prof: user.email || user.id,
+          user: user.email || user.id,
+          userAgent: ua,
+          action: 'Login',
+          time: new Date().toISOString(),
+          ipAddress: data.ip || 'Unable to fetch IP',
+          device: 'Browser Session',
+        };
+        saveAuditLog(newAuditLog);
+      })
+      .catch(() => {
+        const newAuditLog = {
+          prof: user.email || user.id,
+          user: user.email || user.id,
+          userAgent: ua,
+          action: 'Login',
+          time: new Date().toISOString(),
+          ipAddress: 'IP detection unavailable',
+          device: 'Browser Session',
+        };
+        saveAuditLog(newAuditLog);
+      });
   }
+
+  function logEnrollmentActivity(enrollmentLog) {
+    if (!enrollmentLog) return;
+    
+    // Save to both in-memory and localStorage
+    setAuditLogs(prev => [...prev, enrollmentLog]);
+    
+    try {
+      const stored = localStorage.getItem('auditLogs');
+      const existing = stored ? JSON.parse(stored) : [];
+      const isDuplicate = existing.some(l => l.prof === enrollmentLog.prof && l.time === enrollmentLog.time && l.action === enrollmentLog.action);
+      if (!isDuplicate) {
+        existing.push(enrollmentLog);
+        localStorage.setItem('auditLogs', JSON.stringify(existing));
+      }
+    } catch (e) {
+      console.error('Failed to save enrollment log to localStorage:', e);
+    }
+  }
+  
   useEffect(() => {
     if (!showSplash) return () => {};
     setSplashPhase('enter');
@@ -834,6 +911,7 @@ export default function App() {
           program={instructorProgram}
           initialSubject={enrollSubject}
           onEnroll={handleEnroll}
+          onEnrollmentLogged={logEnrollmentActivity}
         />
       );
 
@@ -918,7 +996,7 @@ export default function App() {
       );
   case 'mysubmissions': return <MySubmissions {...props} profKey={profKey} />;
   case 'mychain':       return <MyChain       {...props} profKey={profKey} />;
-  case 'activitylog':   return <ActivityLog logs={logs} auditLogs={auditLogs} curRole={curRole} profKey={profKey} />;
+  case 'activitylog':   return <ActivityLog logs={logs} auditLogs={auditLogs} setAuditLogs={setAuditLogs} curRole={curRole} profKey={profKey} />;
 
       default: return <Dashboard {...props} />;
     }

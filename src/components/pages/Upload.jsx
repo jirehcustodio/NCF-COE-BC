@@ -435,14 +435,26 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
 
   async function handleGradeFile(file) {
     const { label } = getMethod(file.name);
+    
+    // File size validation
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+    if (file.size > MAX_FILE_SIZE) {
+      setGradeNotice({
+        type: 'err',
+        message: `File size exceeds 50 MB limit. Current: ${(file.size / 1024 / 1024).toFixed(2)} MB`,
+      });
+      setGradeStatus('idle');
+      return;
+    }
+
     setGradeStatus('loading');
     setGradeTitle(file.name);
     setGradeSub(`Processing via ${label}...`);
     setGradeNotice(null);
     setOcrMeta(null);
-  setOcrPreview(null);
+    setOcrPreview(null);
     setParseWarnings([]);
-  setDetectedTemplate(null);
+    setDetectedTemplate(null);
     try {
       const ext = file.name.split('.').pop().toLowerCase();
       let rows = [];
@@ -469,7 +481,12 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
         throw new Error('Unsupported file type for parsing.');
       }
 
-  const { map, count, meta } = rowsToGradeMap(rows, { students: myStudents, period });
+      // Warn if too many rows
+      if (rows.length > 5000) {
+        setParseWarnings(prev => [...prev, `⚠️ Large file detected (${rows.length} rows). Processing may take a moment...`]);
+      }
+
+      const { map, count, meta } = rowsToGradeMap(rows, { students: myStudents, period });
       const template = detectTemplate(meta?.headerNormalized);
       const init = {};
       myStudents.forEach(s => {
@@ -539,6 +556,61 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
     { label: 'DOCX/DOC',     icon: 'ti-file-word' },
   ];
 
+  function downloadGradeTemplate(format = 'csv') {
+    // Create sample data with headers
+    const headers = ['Student ID', 'Student Name', 'Prelim', 'Midterm', 'Semi-Final', 'Final'];
+    const sampleData = [
+      headers,
+      ['12-00001', 'Juan Dela Cruz', '', '', '', ''],
+      ['12-00002', 'Maria Garcia', '', '', '', ''],
+      ['12-00003', 'Pedro Santos', '', '', '', ''],
+    ];
+
+    if (format === 'csv') {
+      // Generate CSV
+      const csvContent = sampleData
+        .map(row => row.map(cell => `"${cell}"`).join(','))
+        .join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'grade_sheet_template.csv');
+      link.click();
+      URL.revokeObjectURL(url);
+    } else if (format === 'xlsx') {
+      // Generate Excel using XLSX
+      const worksheet = XLSX.utils.aoa_to_sheet(sampleData);
+      
+      // Set column widths
+      worksheet['!cols'] = [
+        { wch: 15 }, // Student ID
+        { wch: 25 }, // Student Name
+        { wch: 12 }, // Prelim
+        { wch: 12 }, // Midterm
+        { wch: 15 }, // Semi-Final
+        { wch: 12 }, // Final
+      ];
+
+      // Style header row (bold)
+      sampleData[0].forEach((_, colIndex) => {
+        const cellRef = XLSX.utils.encode_col(colIndex) + '1';
+        if (worksheet[cellRef]) {
+          worksheet[cellRef].s = {
+            font: { bold: true },
+            fill: { fgColor: { rgb: 'FFD966' } }, // Yellow background
+            alignment: { horizontal: 'center', vertical: 'center' },
+          };
+        }
+      });
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Grade Sheet');
+      XLSX.writeFile(workbook, 'grade_sheet_template.xlsx');
+    }
+  }
+
   return (
     <>
       <div className="ph">
@@ -553,15 +625,33 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
           <div className="card">
             <div className="ch">
               <span className="ct"><i className="ti ti-table-import" /> Step 1 — Upload grade sheet</span>
-              {onEnrollSubject && (
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   className="btn sm"
                   type="button"
-                  onClick={() => setShowEnrollConfirm(true)}
+                  onClick={() => downloadGradeTemplate('csv')}
+                  title="Download a CSV template for grade submission"
                 >
-                  <i className="ti ti-user-plus" /> Enroll student in this subject
+                  <i className="ti ti-download" /> CSV Template
                 </button>
-              )}
+                <button
+                  className="btn sm"
+                  type="button"
+                  onClick={() => downloadGradeTemplate('xlsx')}
+                  title="Download an Excel template for grade submission"
+                >
+                  <i className="ti ti-download" /> Excel Template
+                </button>
+                {onEnrollSubject && (
+                  <button
+                    className="btn sm"
+                    type="button"
+                    onClick={() => setShowEnrollConfirm(true)}
+                  >
+                    <i className="ti ti-user-plus" /> Enroll student in this subject
+                  </button>
+                )}
+              </div>
             </div>
             <div className="form-grid">
               <div className="fg">
@@ -595,6 +685,9 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
               onFile={handleGradeFile}
               status={gradeStatus}
             />
+            <Notice type="info" icon="ti-info-circle">
+              📊 <strong>Large file support:</strong> Supports up to 50 MB files and 10,000+ rows. Processing large files may take a moment.
+            </Notice>
             {gradeNotice && (
               <Notice type={gradeNotice.type} icon={gradeNotice.type === 'err' ? 'ti-alert-circle' : 'ti-check'}>
                 {gradeNotice.type === 'err'
