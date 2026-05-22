@@ -10,19 +10,19 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
   const rd = ROLES[curRole];
   const [selectedTab, setSelectedTab] = useState('submissions');
   const [deviceFilter, setDeviceFilter] = useState('all');
+  const [accountFilter, setAccountFilter] = useState('all');
 
   // Filter activity logs for current user
   const myLogs = useMemo(() => {
     return logs.filter(l => l.prof === activeProf);
   }, [logs, activeProf]);
 
-  // Filter and enrich audit logs with device detection
-  const myAuditLogs = useMemo(() => {
+  // ALL audit logs enriched with device detection (visible to all accounts)
+  const allAuditLogsEnriched = useMemo(() => {
     return (auditLogs || [])
-      .filter(l => l.prof === activeProf || l.user === activeProf)
       .map(log => {
         // Detect device from user agent or system info
-        const ua = log.userAgent || navigator.userAgent || '';
+        const ua = log.userAgent || '';
         let device = 'Unknown Device';
         let deviceIcon = 'ti-device-laptop';
         let os = 'Unknown OS';
@@ -49,21 +49,38 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
           os = 'Linux';
         }
 
-        return { ...log, device, deviceIcon, os };
-      });
-  }, [auditLogs, activeProf]);
+        // Check if account is online (last login within last 5 minutes)
+        const logTime = new Date(log.time).getTime();
+        const now = new Date().getTime();
+        const isOnline = (now - logTime) < 5 * 60 * 1000; // 5 minutes
 
-  // Get unique devices
+        return { ...log, device, deviceIcon, os, isOnline, account: log.prof || log.user };
+      });
+  }, [auditLogs]);
+
+  // Get unique accounts
+  const accountOptions = useMemo(() => {
+    const accounts = new Set(allAuditLogsEnriched.map(l => l.account).filter(Boolean));
+    return Array.from(accounts).sort();
+  }, [allAuditLogsEnriched]);
+
+  // Filter by account first
+  const filteredByAccount = useMemo(() => {
+    if (accountFilter === 'all') return allAuditLogsEnriched;
+    return allAuditLogsEnriched.filter(l => l.account === accountFilter);
+  }, [allAuditLogsEnriched, accountFilter]);
+
+  // Get unique devices from filtered accounts
   const deviceOptions = useMemo(() => {
-    const devices = new Set(myAuditLogs.map(l => l.device).filter(Boolean));
+    const devices = new Set(filteredByAccount.map(l => l.device).filter(Boolean));
     return Array.from(devices);
-  }, [myAuditLogs]);
+  }, [filteredByAccount]);
 
   // Filter audit logs by device
   const filteredAuditLogs = useMemo(() => {
-    if (deviceFilter === 'all') return myAuditLogs;
-    return myAuditLogs.filter(l => l.device === deviceFilter);
-  }, [myAuditLogs, deviceFilter]);
+    if (deviceFilter === 'all') return filteredByAccount;
+    return filteredByAccount.filter(l => l.device === deviceFilter);
+  }, [filteredByAccount, deviceFilter]);
 
   const formatTime = (time) => {
     if (!time) return '—';
@@ -174,38 +191,70 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
       {selectedTab === 'audit' && (
         <div className="card">
           <div className="ch">
-            <span className="ct"><i className="ti ti-shield-alert" /> Account Security Audit</span>
+            <span className="ct"><i className="ti ti-shield-alert" /> Account Security Audit (All Accounts)</span>
           </div>
 
-          {/* Device Filter */}
-          {deviceOptions.length > 0 && (
-            <div style={{ marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid rgba(128, 0, 32, 0.12)' }}>
-              <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text)', marginBottom: '4px', display: 'block' }}>
-                Filter by device
-              </label>
-              <select
-                value={deviceFilter}
-                onChange={e => setDeviceFilter(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(128, 0, 32, 0.2)',
-                  fontSize: '13px',
-                  maxWidth: '200px',
-                }}
-              >
-                <option value="all">All devices ({myAuditLogs.length})</option>
-                {deviceOptions.map(device => {
-                  const count = myAuditLogs.filter(l => l.device === device).length;
-                  return (
-                    <option key={device} value={device}>
-                      {device} ({count})
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-          )}
+          {/* Account & Device Filters */}
+          <div style={{ marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid rgba(128, 0, 32, 0.12)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            {accountOptions.length > 0 && (
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text)', marginBottom: '4px', display: 'block' }}>
+                  Filter by account
+                </label>
+                <select
+                  value={accountFilter}
+                  onChange={e => setAccountFilter(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(128, 0, 32, 0.2)',
+                    fontSize: '13px',
+                    width: '100%',
+                  }}
+                >
+                  <option value="all">All accounts ({allAuditLogsEnriched.length})</option>
+                  {accountOptions.map(account => {
+                    const count = allAuditLogsEnriched.filter(l => l.account === account).length;
+                    const isOnline = allAuditLogsEnriched.some(l => l.account === account && l.isOnline);
+                    return (
+                      <option key={account} value={account}>
+                        {account} ({count}) {isOnline ? '🟢 Online' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
+
+            {deviceOptions.length > 0 && (
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text)', marginBottom: '4px', display: 'block' }}>
+                  Filter by device
+                </label>
+                <select
+                  value={deviceFilter}
+                  onChange={e => setDeviceFilter(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(128, 0, 32, 0.2)',
+                    fontSize: '13px',
+                    width: '100%',
+                  }}
+                >
+                  <option value="all">All devices ({filteredByAccount.length})</option>
+                  {deviceOptions.map(device => {
+                    const count = filteredByAccount.filter(l => l.device === device).length;
+                    return (
+                      <option key={device} value={device}>
+                        {device} ({count})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
+          </div>
 
           {filteredAuditLogs.length === 0 ? (
             <EmptyState icon="ti-info-circle">
@@ -222,7 +271,8 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
                     padding: '12px',
                     borderRadius: '6px',
                     border: '1px solid rgba(128, 0, 32, 0.12)',
-                    background: '#f9f9f9',
+                    background: log.isOnline ? 'rgba(34, 197, 94, 0.05)' : '#f9f9f9',
+                    borderLeft: log.isOnline ? '3px solid #22c55e' : '3px solid rgba(128, 0, 32, 0.12)',
                   }}
                 >
                   <div style={{ display: 'flex', gap: '12px' }}>
@@ -232,6 +282,7 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
                     <div style={{ flex: 1 }}>
                       <p style={{ margin: '0 0 2px 0', fontSize: '13px', fontWeight: '600', color: 'var(--text)' }}>
                         {log.device}
+                        {log.account && <span style={{ fontSize: '12px', color: 'var(--text-2)', fontWeight: '400', marginLeft: '8px' }}>({log.account})</span>}
                       </p>
                       <p style={{ margin: '0 0 2px 0', fontSize: '12px', color: 'var(--text-2)' }}>
                         <i className="ti ti-device-laptop" /> {log.os || 'Unknown OS'}
@@ -239,25 +290,42 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
                       <p style={{ margin: '0 0 2px 0', fontSize: '12px', color: 'var(--text-2)' }}>
                         {log.action || 'Login'} • {formatTime(log.time)}
                       </p>
-                      {log.ipAddress && (
+                      {log.ipAddress && !log.ipAddress.includes('server-side') && (
                         <p style={{ margin: '0', fontSize: '11px', color: 'var(--text-3)' }}>
-                          IP: {log.ipAddress}
+                          🌐 IP: {log.ipAddress}
                         </p>
                       )}
                     </div>
-                    <span
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        background: log.action === 'Login' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-                        color: log.action === 'Login' ? '#22c55e' : '#3b82f6',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {log.action === 'Login' ? '✓ Login' : log.action || 'Activity'}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
+                      <span
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          background: log.action === 'Login' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                          color: log.action === 'Login' ? '#22c55e' : '#3b82f6',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {log.action === 'Login' ? '✓ Login' : log.action || 'Activity'}
+                      </span>
+                      {log.isOnline && (
+                        <span
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            background: 'rgba(34, 197, 94, 0.1)',
+                            color: '#22c55e',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          🟢 Online
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

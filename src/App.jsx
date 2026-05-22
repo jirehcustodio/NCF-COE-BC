@@ -158,16 +158,34 @@ export default function App() {
   function logDeviceLogin(user) {
     if (!user) return;
     const ua = navigator.userAgent || '';
-    const newAuditLog = {
-      prof: user.email || user.id,
-      user: user.email || user.id,
-      userAgent: ua,
-      action: 'Login',
-      time: new Date().toISOString(),
-      ipAddress: 'Client IP (server-side tracking required)',
-      device: 'Browser Session',
-    };
-    setAuditLogs(prev => [...prev, newAuditLog]);
+    
+    // Fetch client IP from a public API
+    fetch('https://api.ipify.org?format=json')
+      .then(res => res.json())
+      .then(data => {
+        const newAuditLog = {
+          prof: user.email || user.id,
+          user: user.email || user.id,
+          userAgent: ua,
+          action: 'Login',
+          time: new Date().toISOString(),
+          ipAddress: data.ip || 'Unable to fetch IP',
+          device: 'Browser Session',
+        };
+        setAuditLogs(prev => [...prev, newAuditLog]);
+      })
+      .catch(() => {
+        const newAuditLog = {
+          prof: user.email || user.id,
+          user: user.email || user.id,
+          userAgent: ua,
+          action: 'Login',
+          time: new Date().toISOString(),
+          ipAddress: 'IP detection unavailable',
+          device: 'Browser Session',
+        };
+        setAuditLogs(prev => [...prev, newAuditLog]);
+      });
   }
   useEffect(() => {
     if (!showSplash) return () => {};
