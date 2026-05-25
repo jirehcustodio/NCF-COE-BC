@@ -509,11 +509,23 @@ export default function App() {
         setBlocks(blocksData);
         setLogs(logsData);
         setSubjects(subjectsData);
+        if (blocksData.length) {
+          const maxNum = Math.max(...blocksData.map(block => Number(block.num) || 0));
+          setNextBlock(maxNum + 1);
+        }
       } else {
-        setStudents(studentsData.filter(row => row.prof === instructorKey));
-        setBlocks(blocksData.filter(row => row.prof === instructorKey));
-        setLogs(logsData.filter(row => row.prof === instructorKey));
-        setSubjects(subjectsData.filter(row => row.prof === instructorKey));
+        const instructorStudents = studentsData.filter(row => row.prof === instructorKey);
+        const instructorBlocks = blocksData.filter(row => row.prof === instructorKey);
+        const instructorLogs = logsData.filter(row => row.prof === instructorKey);
+        const instructorSubjects = subjectsData.filter(row => row.prof === instructorKey);
+        setStudents(instructorStudents);
+        setBlocks(instructorBlocks);
+        setLogs(instructorLogs);
+        setSubjects(instructorSubjects);
+        if (instructorBlocks.length) {
+          const maxNum = Math.max(...instructorBlocks.map(block => Number(block.num) || 0));
+          setNextBlock(maxNum + 1);
+        }
       }
 
   const fallback = (data) => (Array.isArray(data) ? data : []);
