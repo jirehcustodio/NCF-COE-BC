@@ -6,6 +6,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css';
 import {
   ROLES,
+  DEAN_NAV,
+  PROF_NAV,
   INITIAL_STUDENTS,
   INITIAL_BLOCKS,
   INITIAL_LOGS,
@@ -47,6 +49,9 @@ import {
   deleteFacultyRecord,
   deleteSubjectsByProf,
   deleteStudentsByProf,
+  deleteSubject,
+  deleteGradeSheetsBySubject,
+  deleteStudentsBySubject,
 } from './lib/queries';
 
 import Sidebar       from './components/Sidebar';
@@ -126,6 +131,20 @@ export default function App() {
   const [uploadSubject, setUploadSubject] = useState('');
   const [activeSubject, setActiveSubject] = useState('');
   const isActiveRef = useRef(true);
+
+  const navIdsForRole = useCallback((role) => {
+    const nav = ROLES[role]?.type === 'dean' ? DEAN_NAV : PROF_NAV;
+    return nav.flatMap(section => section.items.map(item => item.id));
+  }, []);
+
+  const getDefaultPage = useCallback((role) => (ROLES[role]?.type === 'dean' ? 'dashboard' : 'mystudents'), []);
+
+  const getPageStorageKey = useCallback((role, userId) => `active_page_${userId || role}`, []);
+
+  const resolveStoredPage = useCallback((role, stored) => {
+    if (!stored) return getDefaultPage(role);
+    return navIdsForRole(role).includes(stored) ? stored : getDefaultPage(role);
+  }, [getDefaultPage, navIdsForRole]);
 
   const programOptions = useMemo(() => {
     const fromCurriculum = curriculumSubjects.map(subject => subject.program).filter(Boolean);
@@ -272,7 +291,8 @@ export default function App() {
       if (sessionUser) {
         const role = sessionUser.user_metadata?.role === 'dean' ? 'dean' : 'instructor';
         setCurRole(role);
-        setActivePage(ROLES[role].type === 'dean' ? 'dashboard' : 'mystudents');
+        const stored = localStorage.getItem(getPageStorageKey(role, sessionUser.email));
+        setActivePage(resolveStoredPage(role, stored));
         setShowLanding(false);
         setShowOnboarding(shouldShowOnboarding(sessionUser));
       }
@@ -284,7 +304,8 @@ export default function App() {
       if (sessionUser) {
         const role = sessionUser.user_metadata?.role === 'dean' ? 'dean' : 'instructor';
         setCurRole(role);
-        setActivePage(ROLES[role].type === 'dean' ? 'dashboard' : 'mystudents');
+        const stored = localStorage.getItem(getPageStorageKey(role, sessionUser.email));
+        setActivePage(resolveStoredPage(role, stored));
         setShowLanding(false);
         setShowOnboarding(shouldShowOnboarding(sessionUser));
         logDeviceLogin(sessionUser);
@@ -487,7 +508,8 @@ export default function App() {
     setAuthUser(data.user || null);
     const role = data.user?.user_metadata?.role === 'dean' ? 'dean' : 'instructor';
     setCurRole(role);
-    setActivePage(ROLES[role].type === 'dean' ? 'dashboard' : 'mystudents');
+  const stored = localStorage.getItem(getPageStorageKey(role, data.user?.email));
+  setActivePage(resolveStoredPage(role, stored));
     setShowLanding(false);
     setShowCreateAccount(false);
     setShowOnboarding(shouldShowOnboarding(data.user));
@@ -509,7 +531,8 @@ export default function App() {
     setAuthUser(data.session.user);
     const createdRole = role === 'dean' ? 'dean' : 'instructor';
     setCurRole(createdRole);
-    setActivePage(ROLES[createdRole].type === 'dean' ? 'dashboard' : 'mystudents');
+  const stored = localStorage.getItem(getPageStorageKey(createdRole, data.session.user?.email));
+  setActivePage(resolveStoredPage(createdRole, stored));
     setShowLanding(false);
     setShowCreateAccount(false);
     setShowOnboarding(shouldShowOnboarding(data.session.user));
@@ -526,12 +549,33 @@ export default function App() {
   function handleRoleChange(role) {
     if (authUser) return;
     setCurRole(role);
-    setActivePage(ROLES[role].type === 'dean' ? 'dashboard' : 'mystudents');
+    const stored = localStorage.getItem(getPageStorageKey(role));
+    setActivePage(resolveStoredPage(role, stored));
   }
 
   /* ---- Navigation ---- */
   function handleNavigate(page) {
     setActivePage(page);
+    const key = getPageStorageKey(curRole, authUser?.email);
+    localStorage.setItem(key, page);
+  }
+
+  async function handleDeleteSubject(subjectCode) {
+    if (!subjectCode) return;
+    const prof = authUser?.email || curRole;
+    setSubjects(prev => prev.filter(item => !(item.code === subjectCode && item.prof === prof)));
+    setAllSubjects(prev => prev.filter(item => !(item.code === subjectCode && item.prof === prof)));
+    setStudents(prev => prev.filter(student => !(student.subj === subjectCode && student.prof === prof)));
+    setGradeSheets(prev => prev.filter(sheet => sheet.subject !== subjectCode));
+    if (activeSubject === subjectCode) setActiveSubject('');
+    if (uploadSubject === subjectCode) setUploadSubject('');
+    if (enrollSubject === subjectCode) setEnrollSubject('');
+
+    if (authUser) {
+      await deleteStudentsBySubject({ subject: subjectCode, prof });
+      await deleteGradeSheetsBySubject({ subject: subjectCode });
+      await deleteSubject({ code: subjectCode, prof });
+    }
   }
 
   /* ---- Blockchain commit (from Upload page) ---- */
@@ -932,6 +976,7 @@ export default function App() {
           curriculumSubjects={curriculumSubjects}
           program={instructorProgram}
           onCreateSubject={handleCreateSubject}
+          onDeleteSubject={handleDeleteSubject}
           onEnrollSubject={(subject) => {
             setEnrollSubject(subject);
             handleNavigate('enroll');

@@ -147,6 +147,22 @@ export async function insertSubject(payload) {
   return supabase.from('subjects').insert(payload).select('*');
 }
 
+export async function deleteSubject({ code, prof }) {
+  let query = supabase.from('subjects').delete().eq('code', code);
+  if (prof) query = query.eq('prof', prof);
+  return query;
+}
+
+export async function deleteGradeSheetsBySubject({ subject }) {
+  return supabase.from('grade_sheets').delete().eq('subject', subject);
+}
+
+export async function deleteStudentsBySubject({ subject, prof }) {
+  let query = supabase.from('students').delete().eq('subj', subject);
+  if (prof) query = query.eq('prof', prof);
+  return query;
+}
+
 export async function deleteSubjectsByProf(prof) {
   return supabase.from('subjects').delete().eq('prof', prof);
 }

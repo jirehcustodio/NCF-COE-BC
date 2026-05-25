@@ -12,6 +12,7 @@ export default function MySubjects({
   onEnrollSubject,
   onOpenSubject,
   onCreateSubject,
+  onDeleteSubject,
   onRefresh,
   refreshing = false,
 }) {
@@ -25,6 +26,7 @@ export default function MySubjects({
   const [curriculumSearch, setCurriculumSearch] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
   const [infoRow, setInfoRow] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -131,6 +133,15 @@ export default function MySubjects({
     }
   }
 
+  function confirmDelete() {
+    if (!deleteTarget?.subject) return;
+    if (onDeleteSubject) {
+      onDeleteSubject(deleteTarget.subject);
+      setToast(`Subject ${deleteTarget.subject} deleted.`);
+    }
+    setDeleteTarget(null);
+  }
+
   return (
     <>
       <div className="ph">
@@ -201,6 +212,12 @@ export default function MySubjects({
                   onClick={() => onUploadSubject(subject.subject)}
                 >
                   <i className="ti ti-upload" /> Upload grades
+                </button>
+                <button
+                  className="btn sm"
+                  onClick={() => setDeleteTarget(subject)}
+                >
+                  <i className="ti ti-trash" /> Delete
                 </button>
               </div>
             </div>
@@ -439,6 +456,28 @@ export default function MySubjects({
               <button className="btn" onClick={() => setInfoRow(null)}>Close</button>
               <button className="btn pri" onClick={() => handleAddSubject(infoRow)}>
                 Add to my subjects
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="modal-bg open" onClick={() => setDeleteTarget(null)}>
+          <div className="modal" onClick={event => event.stopPropagation()}>
+            <div className="modal-hdr">
+              <h3>Delete subject</h3>
+              <button className="close-btn" onClick={() => setDeleteTarget(null)}><i className="ti ti-x" /></button>
+            </div>
+            <div className="modal-content">
+              <Notice type="warn" icon="ti-alert-triangle">
+                This will remove <strong>{deleteTarget.subject}</strong> from your subjects list and unlink enrolled students and grade sheets for this subject.
+              </Notice>
+            </div>
+            <div className="modal-actions">
+              <button className="btn" onClick={() => setDeleteTarget(null)}>Cancel</button>
+              <button className="btn pri" onClick={confirmDelete}>
+                <i className="ti ti-trash" /> Delete subject
               </button>
             </div>
           </div>

@@ -544,6 +544,11 @@ tr:hover td { background: var(--bg-surface); }
   background: var(--bg-surface);
   margin-bottom: 12px;
 }
+.uz.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 .uz:hover, .uz.drag { border-color: var(--primary-light); background: var(--primary-pale); }
 .uz i { font-size: 30px; color: var(--text-3); display: block; margin-bottom: 8px; }
 .uz .ut { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }

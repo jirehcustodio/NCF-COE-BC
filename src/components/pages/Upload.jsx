@@ -31,7 +31,7 @@ function getMethod(filename) {
   return map[ext] || { label: 'File import', icon: 'ti-file' };
 }
 
-function UploadZone({ id, icon, title, sub, tags, onFile, status }) {
+function UploadZone({ id, icon, title, sub, tags, onFile, status, disabled = false }) {
   const inputRef = useRef();
   const [drag, setDrag] = useState(false);
 
@@ -40,11 +40,20 @@ function UploadZone({ id, icon, title, sub, tags, onFile, status }) {
   return (
     <>
       <div
-        className={`uz ${drag ? 'drag' : ''}`}
-        onClick={() => inputRef.current.click()}
-        onDragOver={e => { e.preventDefault(); setDrag(true); }}
+        className={`uz ${drag ? 'drag' : ''} ${disabled ? 'disabled' : ''}`}
+        onClick={() => !disabled && inputRef.current.click()}
+        onDragOver={e => {
+          if (disabled) return;
+          e.preventDefault();
+          setDrag(true);
+        }}
         onDragLeave={() => setDrag(false)}
-        onDrop={e => { e.preventDefault(); setDrag(false); handle(e.dataTransfer.files[0]); }}
+        onDrop={e => {
+          if (disabled) return;
+          e.preventDefault();
+          setDrag(false);
+          handle(e.dataTransfer.files[0]);
+        }}
       >
         <input
           ref={inputRef} type="file" style={{ display: 'none' }}
@@ -119,28 +128,35 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
   const showReview = gradeStatus === 'done';
 
   const subjectOptions = useMemo(() => {
-    const fromStudents = myStudents.map(s => s.subj).filter(Boolean);
-    const fromSubjects = (subjects || []).map(s => (typeof s === 'string' ? s : s.code)).filter(Boolean);
-    const merged = Array.from(new Set([...fromSubjects, ...fromStudents, initialSubject].filter(Boolean)));
-    return merged.length ? merged : rd.subjects;
-  }, [myStudents, subjects, rd.subjects, initialSubject]);
+    const subjectList = (subjects || [])
+      .map(s => (typeof s === 'string' ? { code: s, title: '' } : {
+        code: s.code || s.subject,
+        title: s.title || '',
+      }))
+      .filter(s => s.code);
+    const map = new Map(subjectList.map(item => [item.code, item]));
+    if (initialSubject && !map.has(initialSubject)) {
+      map.set(initialSubject, { code: initialSubject, title: '' });
+    }
+    return Array.from(map.values()).sort((a, b) => a.code.localeCompare(b.code));
+  }, [subjects, initialSubject]);
 
   const filteredSubjects = useMemo(() => {
     if (!subjectSearch) return subjectOptions;
     const term = subjectSearch.toLowerCase();
-    return subjectOptions.filter(option => option.toLowerCase().includes(term));
+    return subjectOptions.filter(option =>
+      option.code.toLowerCase().includes(term)
+      || option.title.toLowerCase().includes(term)
+    );
   }, [subjectOptions, subjectSearch]);
+
+  const subjectStudents = useMemo(() => (
+    subject ? myStudents.filter(student => student.subj === subject) : []
+  ), [myStudents, subject]);
 
   useEffect(() => {
     if (initialSubject) setSubject(initialSubject);
   }, [initialSubject]);
-
-  useEffect(() => {
-    if (!subjectOptions.length) return;
-    if (!subject || !subjectOptions.includes(subject)) {
-      setSubject(subjectOptions[0]);
-    }
-  }, [subjectOptions, subject]);
 
   useEffect(() => {
     if (!ocrPreview?.url) return undefined;
@@ -173,7 +189,7 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
     const map = {};
     headers.forEach((h, i) => {
       const key = normalizeHeader(h);
-      if (['student_id', 'id', 'studentid'].includes(key)) map.id = i;
+      if (['student_id', 'student_no', 'student_number', 'studentnum', 'stud_no', 'id', 'studentid'].includes(key)) map.id = i;
       if (['no', 'no.', 'no_'].includes(key)) map.no = i;
       if (['name', 'student_name'].includes(key)) map.name = i;
       if (['prelim', 'pre'].includes(key)) map.prelim = i;
@@ -434,6 +450,14 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
 
 
   async function handleGradeFile(file) {
+    if (!subject) {
+      setGradeNotice({ type: 'err', label: 'Select a subject before uploading grades.' });
+      return;
+    }
+    if (!subjectStudents.length) {
+      setGradeNotice({ type: 'err', label: 'No enrolled students found for this subject.' });
+      return;
+    }
     const { label } = getMethod(file.name);
     
     // File size validation
@@ -486,10 +510,10 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
         setParseWarnings(prev => [...prev, `⚠️ Large file detected (${rows.length} rows). Processing may take a moment...`]);
       }
 
-      const { map, count, meta } = rowsToGradeMap(rows, { students: myStudents, period });
+      const { map, count, meta } = rowsToGradeMap(rows, { students: subjectStudents, period });
       const template = detectTemplate(meta?.headerNormalized);
       const init = {};
-      myStudents.forEach(s => {
+      subjectStudents.forEach(s => {
         const existing = map[s.id] || {};
         init[s.id] = {
           prelim: existing.prelim ?? s.prelim ?? null,
@@ -499,7 +523,7 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
         };
       });
 
-      const missing = myStudents.filter(s => {
+      const missing = subjectStudents.filter(s => {
         const field = period.toLowerCase().replace('-', '');
         const grade = init[s.id]?.[field === 'semifinal' ? 'semi' : field];
         return grade === null || grade === undefined || grade === '';
@@ -546,6 +570,10 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
   }
 
   function commit() {
+    if (!subject) {
+      setGradeNotice({ type: 'err', label: 'Select a subject before committing grades.' });
+      return;
+    }
     onCommit({ subject, period, gradeValues });
   }
 
@@ -663,12 +691,22 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
                   style={{ marginBottom: 8 }}
                 />
                 <select value={subject} onChange={e => setSubject(e.target.value)}>
+                  <option value="">-- Select subject --</option>
                   {filteredSubjects.length ? (
-                    filteredSubjects.map(s => <option key={s}>{s}</option>)
+                    filteredSubjects.map(s => (
+                      <option key={s.code} value={s.code}>
+                        {s.title ? `${s.code} - ${s.title}` : s.code}
+                      </option>
+                    ))
                   ) : (
                     <option value="" disabled>No matching subjects</option>
                   )}
                 </select>
+                {!subjectOptions.length && (
+                  <Notice type="warn" icon="ti-alert-triangle">
+                    No subjects found. Add subjects in <strong>My Subjects</strong> first.
+                  </Notice>
+                )}
               </div>
               <div className="fg">
                 <label>Grade period</label>
@@ -684,6 +722,7 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
               tags={FILE_TAGS_GRADE}
               onFile={handleGradeFile}
               status={gradeStatus}
+              disabled={!subject}
             />
             <Notice type="info" icon="ti-info-circle">
               📊 <strong>Large file support:</strong> Supports up to 50 MB files and 10,000+ rows. Processing large files may take a moment.
@@ -776,7 +815,7 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
                       </tr>
                     </thead>
                     <tbody>
-                      {myStudents.map(s => (
+                      {subjectStudents.map(s => (
                         <tr key={s.id}>
                           <td className="hash">{s.id}</td>
                           <td style={{ fontWeight: 500 }}>{s.name}</td>
