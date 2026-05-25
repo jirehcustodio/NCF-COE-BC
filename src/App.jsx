@@ -136,6 +136,7 @@ export default function App() {
   const [activeSubject, setActiveSubject] = useState('');
   const isActiveRef = useRef(true);
   const presenceTimerRef = useRef(null);
+  const localBlocksKey = 'localBlocks';
 
   const presenceKey = 'presenceStatus';
 
@@ -388,6 +389,27 @@ export default function App() {
       clearTimeout(guard);
     };
   }, [showSplash]);
+
+  useEffect(() => {
+    if (authUser || isSupabaseConfigured) return;
+    try {
+      const stored = localStorage.getItem(localBlocksKey);
+      if (stored) setBlocks(JSON.parse(stored));
+    } catch (e) {
+      console.error('Failed to load local blocks:', e);
+    }
+  }, [authUser]);
+
+  useEffect(() => {
+    if (authUser) return;
+    try {
+      if (blocks?.length) {
+        localStorage.setItem(localBlocksKey, JSON.stringify(blocks));
+      }
+    } catch (e) {
+      console.error('Failed to persist local blocks:', e);
+    }
+  }, [blocks, authUser]);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
