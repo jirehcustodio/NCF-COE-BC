@@ -138,6 +138,38 @@ export default function App() {
   const presenceTimerRef = useRef(null);
   const localBlocksKey = 'localBlocks';
 
+  async function migrateLocalBlocks(user) {
+    if (!user || !isSupabaseConfigured) return;
+    try {
+      const stored = localStorage.getItem(localBlocksKey);
+      if (!stored) return;
+      const local = JSON.parse(stored) || [];
+      if (!local.length) return;
+      const prof = user.email || user.id;
+      const { data: existingBlocks } = await fetchBlocks();
+      const existingKeys = new Set((existingBlocks || []).map(block => `${block.num}-${block.hash}`));
+      const toInsert = local
+        .filter(block => block.prof === prof)
+        .filter(block => !existingKeys.has(`${block.num}-${block.hash}`))
+        .map(block => ({
+          num: block.num,
+          hash: block.hash,
+          prev: block.prev,
+          time: block.time,
+          prof: block.prof,
+          subj: block.subj,
+          period: block.period,
+          count: block.count,
+        }));
+
+      if (toInsert.length) {
+        await insertBlock(toInsert);
+      }
+    } catch (e) {
+      console.error('Failed to migrate local blocks:', e);
+    }
+  }
+
   const presenceKey = 'presenceStatus';
 
   function parseDeviceInfo(userAgent) {
@@ -428,6 +460,7 @@ export default function App() {
         setActivePage(resolveStoredPage(role, stored));
         setShowLanding(false);
         setShowOnboarding(shouldShowOnboarding(sessionUser));
+        migrateLocalBlocks(sessionUser);
       }
     });
 
@@ -445,6 +478,7 @@ export default function App() {
         updatePresence(sessionUser);
         if (presenceTimerRef.current) clearInterval(presenceTimerRef.current);
         presenceTimerRef.current = setInterval(() => updatePresence(sessionUser), 2 * 60 * 1000);
+        migrateLocalBlocks(sessionUser);
       } else {
         setShowLanding(true);
         setShowOnboarding(false);
@@ -665,6 +699,7 @@ export default function App() {
     setShowLanding(false);
     setShowCreateAccount(false);
     setShowOnboarding(shouldShowOnboarding(data.user));
+    migrateLocalBlocks(data.user);
   }
 
   async function handleCreateAccount({ email, password, role }) {
@@ -688,6 +723,7 @@ export default function App() {
     setShowLanding(false);
     setShowCreateAccount(false);
     setShowOnboarding(shouldShowOnboarding(data.session.user));
+    migrateLocalBlocks(data.session.user);
   }
 
   async function handleLogout() {
