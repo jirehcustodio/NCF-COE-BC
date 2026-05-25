@@ -96,12 +96,12 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
     });
 
     (remoteAuditLogs || []).forEach(log => {
-      const logId = `${log.prof || log.user}-${log.time}-${log.action}`;
+      const logId = `${log.prof || log.user_id}-${log.time}-${log.action}`;
       if (!persistedIds.has(logId)) {
         combined.push({
           ...log,
-          prof: log.prof || log.user,
-          user: log.user || log.prof,
+          prof: log.prof || log.user_id,
+          user: log.user_id || log.prof,
           userAgent: log.user_agent || log.userAgent,
           ipAddress: log.ip_address || log.ipAddress,
           device: log.device || log.device,
@@ -121,9 +121,9 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
   // ALL audit logs enriched with device detection (visible to all accounts)
   const allAuditLogsEnriched = useMemo(() => {
     const remotePresenceMap = (remotePresence || []).reduce((acc, entry) => {
-      if (!entry?.user) return acc;
-      acc[entry.user] = {
-        user: entry.user,
+      if (!entry?.user_id) return acc;
+      acc[entry.user_id] = {
+        user: entry.user_id,
         lastSeen: entry.last_seen,
         ipAddress: entry.ip_address,
         userAgent: entry.user_agent,

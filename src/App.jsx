@@ -174,7 +174,7 @@ export default function App() {
 
     const { device, os } = parseDeviceInfo(ua);
     const payload = {
-      user: user.email || user.id,
+      user_id: user.email || user.id,
       last_seen: new Date().toISOString(),
       ip_address: ipAddress,
       user_agent: ua,
@@ -184,7 +184,7 @@ export default function App() {
     };
 
     savePresence({
-      user: payload.user,
+      user: payload.user_id,
       lastSeen: payload.last_seen,
       ipAddress: payload.ip_address,
       userAgent: payload.user_agent,
@@ -292,7 +292,7 @@ export default function App() {
         const { device, os } = parseDeviceInfo(ua);
         const newAuditLog = {
           prof: user.email || user.id,
-          user: user.email || user.id,
+      user_id: user.email || user.id,
           userAgent: ua,
           action: 'Login',
           time: new Date().toISOString(),
@@ -304,7 +304,7 @@ export default function App() {
         if (isSupabaseConfigured) {
           await insertAuditLog({
             prof: newAuditLog.prof,
-            user: newAuditLog.user,
+            user_id: newAuditLog.user,
             user_agent: newAuditLog.userAgent,
             action: 'Login',
             time: newAuditLog.time,
@@ -331,7 +331,7 @@ export default function App() {
         if (isSupabaseConfigured) {
           await insertAuditLog({
             prof: newAuditLog.prof,
-            user: newAuditLog.user,
+            user_id: newAuditLog.user,
             user_agent: newAuditLog.userAgent,
             action: 'Login',
             time: newAuditLog.time,
@@ -364,8 +364,8 @@ export default function App() {
 
     if (isSupabaseConfigured) {
       insertAuditLog({
-        prof: enrollmentLog.prof,
-        user: enrollmentLog.user,
+  prof: enrollmentLog.prof,
+  user_id: enrollmentLog.user,
         user_agent: enrollmentLog.userAgent,
         action: enrollmentLog.action || 'Enrollment',
         time: enrollmentLog.time,
@@ -662,7 +662,7 @@ export default function App() {
       const { device, os } = parseDeviceInfo(ua);
       await insertAuditLog({
         prof: authUser.email || authUser.id,
-        user: authUser.email || authUser.id,
+        user_id: authUser.email || authUser.id,
         user_agent: ua,
         action: 'Logout',
         time: new Date().toISOString(),
