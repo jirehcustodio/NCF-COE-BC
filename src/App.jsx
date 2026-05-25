@@ -536,15 +536,33 @@ export default function App() {
   const logsData = normalize(logsRes.data);
   const subjectsData = normalize(subjectsRes.data);
 
+      const localBlocks = (() => {
+        try {
+          const stored = localStorage.getItem(localBlocksKey);
+          return stored ? JSON.parse(stored) : [];
+        } catch (e) {
+          console.error('Failed to read local blocks:', e);
+          return [];
+        }
+      })();
+
       // Keep an unfiltered copy of subjects for pages that need to show all subjects
       setAllSubjects(subjectsData);
       if (roleType === 'dean') {
+        const mergedBlocks = [...blocksData, ...localBlocks].reduce((acc, block) => {
+          const key = `${block.num}-${block.hash}`;
+          if (!acc.map.has(key)) {
+            acc.map.set(key, true);
+            acc.items.push(block);
+          }
+          return acc;
+        }, { items: [], map: new Map() }).items;
         setStudents(studentsData);
-        setBlocks(blocksData);
+        setBlocks(mergedBlocks);
         setLogs(logsData);
         setSubjects(subjectsData);
-        if (blocksData.length) {
-          const maxNum = Math.max(...blocksData.map(block => Number(block.num) || 0));
+        if (mergedBlocks.length) {
+          const maxNum = Math.max(...mergedBlocks.map(block => Number(block.num) || 0));
           setNextBlock(maxNum + 1);
         }
       } else {
@@ -552,12 +570,21 @@ export default function App() {
         const instructorBlocks = blocksData.filter(row => row.prof === instructorKey);
         const instructorLogs = logsData.filter(row => row.prof === instructorKey);
         const instructorSubjects = subjectsData.filter(row => row.prof === instructorKey);
+        const localInstructorBlocks = localBlocks.filter(block => block.prof === instructorKey);
+        const mergedBlocks = [...instructorBlocks, ...localInstructorBlocks].reduce((acc, block) => {
+          const key = `${block.num}-${block.hash}`;
+          if (!acc.map.has(key)) {
+            acc.map.set(key, true);
+            acc.items.push(block);
+          }
+          return acc;
+        }, { items: [], map: new Map() }).items;
         setStudents(instructorStudents);
-        setBlocks(instructorBlocks);
+        setBlocks(mergedBlocks);
         setLogs(instructorLogs);
         setSubjects(instructorSubjects);
-        if (instructorBlocks.length) {
-          const maxNum = Math.max(...instructorBlocks.map(block => Number(block.num) || 0));
+        if (mergedBlocks.length) {
+          const maxNum = Math.max(...mergedBlocks.map(block => Number(block.num) || 0));
           setNextBlock(maxNum + 1);
         }
       }
@@ -814,6 +841,13 @@ export default function App() {
       subj: subjCode, period, count: myS.length,
     };
     setBlocks(prev => [...prev, newBlock]);
+    try {
+      const stored = localStorage.getItem(localBlocksKey);
+      const existing = stored ? JSON.parse(stored) : [];
+      localStorage.setItem(localBlocksKey, JSON.stringify([...existing, newBlock]));
+    } catch (e) {
+      console.error('Failed to store block locally:', e);
+    }
 
     // Add log entry
     const newLog = {

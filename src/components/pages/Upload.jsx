@@ -103,7 +103,7 @@ const GRADE_HEADER_ALIASES = {
   final: ['final', 'fin'],
 };
 
-export default function Upload({ students, subjects = [], profKey, curRole, onCommit, onEnrollSubject, initialSubject = '' }) {
+export default function Upload({ students, subjects = [], profKey, curRole, onCommit, onSaveGrades, onEnrollSubject, initialSubject = '' }) {
   const rd = ROLES[curRole];
   const activeProf = profKey || curRole;
   const myStudents = students.filter(s => s.prof === activeProf);
@@ -558,6 +558,10 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
       const confidenceNote = ocrConfidence !== null ? ` · OCR ${Math.round(ocrConfidence)}%` : '';
       setGradeSub(`✓ Parsed ${count} rows via ${label}${confidenceNote}`);
       setGradeNotice({ type: 'suc', label });
+
+      if (onSaveGrades) {
+        onSaveGrades({ subject, period, gradeValues: init });
+      }
     } catch (err) {
       setGradeStatus('idle');
       setGradeSub('Upload CSV/XLSX, PDF, DOCX, or photo grade sheets');
