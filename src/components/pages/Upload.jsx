@@ -134,12 +134,16 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
         title: s.title || '',
       }))
       .filter(s => s.code);
-    const map = new Map(subjectList.map(item => [item.code, item]));
+    const fromStudents = myStudents
+      .map(student => student.subj)
+      .filter(Boolean)
+      .map(code => ({ code, title: '' }));
+    const map = new Map([...subjectList, ...fromStudents].map(item => [item.code, item]));
     if (initialSubject && !map.has(initialSubject)) {
       map.set(initialSubject, { code: initialSubject, title: '' });
     }
     return Array.from(map.values()).sort((a, b) => a.code.localeCompare(b.code));
-  }, [subjects, initialSubject]);
+  }, [subjects, initialSubject, myStudents]);
 
   const filteredSubjects = useMemo(() => {
     if (!subjectSearch) return subjectOptions;
