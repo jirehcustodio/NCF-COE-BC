@@ -32,6 +32,9 @@ import {
   upsertCurriculumSubjects,
   insertBlock,
   insertLog,
+  insertAuditLog,
+  fetchAuditPresence,
+  upsertAuditPresence,
   deleteStudent,
   deleteAllStudents,
   insertSubject,
@@ -108,6 +111,7 @@ export default function App() {
   const [blocks,     setBlocks]     = useState(INITIAL_BLOCKS);
   const [logs,       setLogs]       = useState(INITIAL_LOGS);
   const [auditLogs,  setAuditLogs]  = useState([]);
+  const [auditPresence, setAuditPresence] = useState([]);
   const [nextBlock,  setNextBlock]  = useState(1049);
   const [modal,      setModal]      = useState(null);
   const [authUser,   setAuthUser]   = useState(null);
@@ -131,6 +135,70 @@ export default function App() {
   const [uploadSubject, setUploadSubject] = useState('');
   const [activeSubject, setActiveSubject] = useState('');
   const isActiveRef = useRef(true);
+  const presenceTimerRef = useRef(null);
+
+  const presenceKey = 'presenceStatus';
+
+  function parseDeviceInfo(userAgent) {
+    const ua = userAgent || '';
+    if (ua.includes('iPhone') || ua.includes('iPad')) return { device: 'iOS Device', os: 'iOS' };
+    if (ua.includes('Android')) return { device: 'Android Device', os: 'Android' };
+    if (ua.includes('Windows')) return { device: 'Windows PC', os: 'Windows' };
+    if (ua.includes('Mac')) return { device: 'Mac', os: 'macOS' };
+    if (ua.includes('Linux')) return { device: 'Linux PC', os: 'Linux' };
+    return { device: 'Unknown Device', os: 'Unknown OS' };
+  }
+
+  function savePresence(entry) {
+    try {
+      const stored = localStorage.getItem(presenceKey);
+      const map = stored ? JSON.parse(stored) : {};
+      map[entry.user] = entry;
+      localStorage.setItem(presenceKey, JSON.stringify(map));
+    } catch (e) {
+      console.error('Failed to save presence state:', e);
+    }
+  }
+
+  async function updatePresence(user, status = 'online') {
+    if (!user) return;
+    const ua = navigator.userAgent || '';
+    let ipAddress = 'Unknown';
+    try {
+      const response = await fetch('https://api.ipify.org?format=json', { timeout: 5000 });
+      const data = await response.json();
+      ipAddress = data.ip || ipAddress;
+    } catch (e) {
+      ipAddress = 'Unavailable';
+    }
+
+    const { device, os } = parseDeviceInfo(ua);
+    const payload = {
+      user: user.email || user.id,
+      last_seen: new Date().toISOString(),
+      ip_address: ipAddress,
+      user_agent: ua,
+      device,
+      os,
+      status,
+    };
+
+    savePresence({
+      user: payload.user,
+      lastSeen: payload.last_seen,
+      ipAddress: payload.ip_address,
+      userAgent: payload.user_agent,
+      device: payload.device,
+      os: payload.os,
+      status: payload.status,
+    });
+
+    if (isSupabaseConfigured) {
+      await upsertAuditPresence(payload);
+      const { data } = await fetchAuditPresence();
+      setAuditPresence(data || []);
+    }
+  }
 
   const navIdsForRole = useCallback((role) => {
     const nav = ROLES[role]?.type === 'dean' ? DEAN_NAV : PROF_NAV;
@@ -220,7 +288,8 @@ export default function App() {
     // Fetch client IP from a public API
     fetch('https://api.ipify.org?format=json', { timeout: 5000 })
       .then(res => res.json())
-      .then(data => {
+      .then(async data => {
+        const { device, os } = parseDeviceInfo(ua);
         const newAuditLog = {
           prof: user.email || user.id,
           user: user.email || user.id,
@@ -228,11 +297,26 @@ export default function App() {
           action: 'Login',
           time: new Date().toISOString(),
           ipAddress: data.ip || 'Unable to fetch IP',
-          device: 'Browser Session',
+          device,
+          os,
         };
         saveAuditLog(newAuditLog);
+        if (isSupabaseConfigured) {
+          await insertAuditLog({
+            prof: newAuditLog.prof,
+            user: newAuditLog.user,
+            user_agent: newAuditLog.userAgent,
+            action: 'Login',
+            time: newAuditLog.time,
+            ip_address: newAuditLog.ipAddress,
+            device,
+            os,
+          });
+        }
+        await updatePresence(user, 'online');
       })
-      .catch(() => {
+      .catch(async () => {
+        const { device, os } = parseDeviceInfo(ua);
         const newAuditLog = {
           prof: user.email || user.id,
           user: user.email || user.id,
@@ -240,9 +324,23 @@ export default function App() {
           action: 'Login',
           time: new Date().toISOString(),
           ipAddress: 'IP detection unavailable',
-          device: 'Browser Session',
+          device,
+          os,
         };
         saveAuditLog(newAuditLog);
+        if (isSupabaseConfigured) {
+          await insertAuditLog({
+            prof: newAuditLog.prof,
+            user: newAuditLog.user,
+            user_agent: newAuditLog.userAgent,
+            action: 'Login',
+            time: newAuditLog.time,
+            ip_address: null,
+            device,
+            os,
+          });
+        }
+        await updatePresence(user, 'online');
       });
   }
 
@@ -262,6 +360,19 @@ export default function App() {
       }
     } catch (e) {
       console.error('Failed to save enrollment log to localStorage:', e);
+    }
+
+    if (isSupabaseConfigured) {
+      insertAuditLog({
+        prof: enrollmentLog.prof,
+        user: enrollmentLog.user,
+        user_agent: enrollmentLog.userAgent,
+        action: enrollmentLog.action || 'Enrollment',
+        time: enrollmentLog.time,
+        ip_address: enrollmentLog.ipAddress || null,
+        device: enrollmentLog.device || null,
+        os: enrollmentLog.os || null,
+      });
     }
   }
   
@@ -309,6 +420,9 @@ export default function App() {
         setShowLanding(false);
         setShowOnboarding(shouldShowOnboarding(sessionUser));
         logDeviceLogin(sessionUser);
+        updatePresence(sessionUser);
+        if (presenceTimerRef.current) clearInterval(presenceTimerRef.current);
+        presenceTimerRef.current = setInterval(() => updatePresence(sessionUser), 2 * 60 * 1000);
       } else {
         setShowLanding(true);
         setShowOnboarding(false);
@@ -318,6 +432,10 @@ export default function App() {
     return () => {
       active = false;
       listener?.subscription?.unsubscribe();
+      if (presenceTimerRef.current) {
+        clearInterval(presenceTimerRef.current);
+        presenceTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -539,6 +657,21 @@ export default function App() {
   }
 
   async function handleLogout() {
+    if (authUser) {
+      const ua = navigator.userAgent || '';
+      const { device, os } = parseDeviceInfo(ua);
+      await insertAuditLog({
+        prof: authUser.email || authUser.id,
+        user: authUser.email || authUser.id,
+        user_agent: ua,
+        action: 'Logout',
+        time: new Date().toISOString(),
+        ip_address: null,
+        device,
+        os,
+      });
+      await updatePresence(authUser, 'offline');
+    }
     await signOut();
     setShowLanding(true);
     setShowOnboarding(false);

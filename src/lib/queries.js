@@ -135,6 +135,22 @@ export async function insertGradeSheet(payload) {
   return supabase.from('grade_sheets').insert(payload).select('*');
 }
 
+export async function fetchAuditLogs() {
+  return supabase.from('audit_logs').select('*').order('time', { ascending: false });
+}
+
+export async function insertAuditLog(payload) {
+  return supabase.from('audit_logs').insert(payload).select('*');
+}
+
+export async function fetchAuditPresence() {
+  return supabase.from('audit_presence').select('*').order('last_seen', { ascending: false });
+}
+
+export async function upsertAuditPresence(payload) {
+  return supabase.from('audit_presence').upsert(payload).select('*');
+}
+
 export async function upsertGradeSheet(payload) {
   return supabase.from('grade_sheets').upsert(payload).select('*');
 }
