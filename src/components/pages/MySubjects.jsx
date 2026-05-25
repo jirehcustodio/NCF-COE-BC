@@ -191,7 +191,9 @@ export default function MySubjects({
               </div>
               {(subject.program || subject.year || subject.semester) && (
                 <div className="muted-text" style={{ marginBottom: '10px' }}>
-                  {[subject.program, subject.year, subject.semester].filter(Boolean).join(' · ')}
+                  {subject.program && <span>Program: {subject.program}</span>}
+                  {subject.year && <span>{subject.program ? ' · ' : ''}Year: {subject.year}</span>}
+                  {subject.semester && <span>{subject.program || subject.year ? ' · ' : ''}Semester: {subject.semester}</span>}
                 </div>
               )}
               <div className="inline-actions">
