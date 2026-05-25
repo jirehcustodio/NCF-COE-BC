@@ -788,7 +788,16 @@ export default function App() {
           upload_method: 'Uploaded (committed)',
         });
       });
-      insertBlock(newBlock);
+      insertBlock({
+        num: newBlock.num,
+        hash: newBlock.hash,
+        prev: newBlock.prev,
+        time: newBlock.time,
+        prof: newBlock.prof,
+        subj: newBlock.subj,
+        period: newBlock.period,
+        count: newBlock.count,
+      });
       insertLog(newLog);
       upsertGradeSheet({
         subject: subjCode,
@@ -798,6 +807,26 @@ export default function App() {
         status: 'Submitted',
       });
     }
+  }
+
+  function handleSaveUploadedGrades({ subject, period, gradeValues }) {
+    if (!authUser || !subject) return;
+    const profKey = authUser.email;
+    const subjectStudents = students.filter(student => student.prof === profKey && student.subj === subject);
+    subjectStudents.forEach(student => {
+      const vals = gradeValues[student.id];
+      if (!vals) return;
+      upsertStudent({
+        ...student,
+        prof: profKey,
+        prelim: parseInt(vals.prelim) || student.prelim,
+        midterm: parseInt(vals.midterm) || student.midterm,
+        semi: parseInt(vals.semi) || student.semi,
+        final: parseInt(vals.final) || student.final,
+        status: student.status || 'uploaded',
+        upload_method: 'Uploaded (draft)',
+      });
+    });
   }
 
   function handleEnroll({ students: studentsToEnroll, subject }) {
@@ -1174,6 +1203,7 @@ export default function App() {
           {...props}
           subjects={subjects}
           onCommit={handleCommit}
+          onSaveGrades={handleSaveUploadedGrades}
           initialSubject={uploadSubject}
           onEnrollSubject={(subject) => {
             setEnrollSubject(subject);
