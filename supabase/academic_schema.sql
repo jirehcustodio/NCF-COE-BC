@@ -341,7 +341,10 @@ create policy "blocks_read" on public.blocks
 
 drop policy if exists "blocks_insert" on public.blocks;
 create policy "blocks_insert" on public.blocks
-  for insert with check (auth.uid() is not null);
+  for insert with check (
+    auth.jwt()->>'email' = prof
+    OR auth.jwt()->'user_metadata'->>'role' = 'dean'
+  );
 
 drop policy if exists "audit_logs_read" on public.audit_logs;
 create policy "audit_logs_read" on public.audit_logs

@@ -809,7 +809,7 @@ export default function App() {
   }
 
   /* ---- Blockchain commit (from Upload page) ---- */
-  function handleCommit({ subject, period, gradeValues }) {
+  async function handleCommit({ subject, period, gradeValues }) {
     const rd      = ROLES[curRole];
     const hash    = genHash();
     const now     = nowStr();
@@ -892,7 +892,7 @@ export default function App() {
           upload_method: 'Uploaded (committed)',
         });
       });
-      insertBlock({
+      const { error: blockError } = await insertBlock({
         num: newBlock.num,
         hash: newBlock.hash,
         prev: newBlock.prev,
@@ -902,14 +902,25 @@ export default function App() {
         period: newBlock.period,
         count: newBlock.count,
       });
-      insertLog(newLog);
-      upsertGradeSheet({
+      if (blockError) {
+        console.error('Failed to persist block to Supabase:', blockError);
+      }
+
+      const { error: logError } = await insertLog(newLog);
+      if (logError) {
+        console.error('Failed to persist log to Supabase:', logError);
+      }
+
+      const { error: sheetError } = await upsertGradeSheet({
         subject: subjCode,
         section: myS[0]?.section || 'TBA',
         period,
         last_updated: now,
         status: 'Submitted',
       });
+      if (sheetError) {
+        console.error('Failed to persist grade sheet to Supabase:', sheetError);
+      }
     }
   }
 

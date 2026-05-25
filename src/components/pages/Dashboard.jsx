@@ -10,6 +10,13 @@ export default function Dashboard({ students, logs, blocks, gradeSheets = [], fa
   const periodicalSaves = logs.filter(entry => String(entry.desc || '').toLowerCase().includes('saved')).length;
   const blockchainCommits = blocks.length;
 
+  const formatInstructorName = (id, profileName) => {
+    if (profileName) return profileName;
+    if (ROLES[id]?.name) return ROLES[id].name;
+    if (String(id || '').includes('@')) return 'Instructor';
+    return id || 'Instructor';
+  };
+
   const instructorOptions = useMemo(() => {
     const fromLogs = logs.map(entry => entry.prof).filter(Boolean);
     const fromBlocks = blocks.map(block => block.prof).filter(Boolean);
@@ -28,7 +35,7 @@ export default function Dashboard({ students, logs, blocks, gradeSheets = [], fa
       const profile = facultyRecords.find(record => record.id === id);
       map.set(id, {
         id,
-        name: profile?.name || ROLES[id]?.name || id,
+        name: formatInstructorName(id, profile?.name),
         dept: profile?.dept || ROLES[id]?.dept || '—',
         uploads: 0,
         lastActivity: null,
@@ -37,7 +44,7 @@ export default function Dashboard({ students, logs, blocks, gradeSheets = [], fa
     blocks.forEach(block => {
       const row = map.get(block.prof) || {
         id: block.prof,
-        name: ROLES[block.prof]?.name || block.prof,
+        name: formatInstructorName(block.prof),
         dept: ROLES[block.prof]?.dept || '—',
         uploads: 0,
         lastActivity: null,
