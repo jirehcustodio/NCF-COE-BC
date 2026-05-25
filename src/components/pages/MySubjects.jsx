@@ -52,21 +52,39 @@ export default function MySubjects({
   }, [contextMenu]);
 
   const subjectCards = useMemo(() => {
+    const subjectMap = new Map(subjects.map(item => [item.code || item.subject, item]));
+    const curriculumMap = new Map(curriculumSubjects.map(item => [item.code, item]));
     const map = new Map();
+
+    const ensureEntry = (code) => {
+      if (!code) return;
+      const subjectInfo = subjectMap.get(code);
+      const curriculumInfo = curriculumMap.get(code);
+      const current = map.get(code) || {
+        subject: code,
+        title: subjectInfo?.title || curriculumInfo?.title || '',
+        program: subjectInfo?.program || curriculumInfo?.program || '',
+        year: subjectInfo?.year || curriculumInfo?.year || '',
+        semester: subjectInfo?.semester || curriculumInfo?.semester || '',
+        count: 0,
+      };
+      map.set(code, current);
+    };
+
     myStudents.forEach(student => {
-      const subject = student.subj || 'Unassigned';
-      const current = map.get(subject) || { subject, count: 0 };
-      map.set(subject, { ...current, count: current.count + 1 });
+      const code = student.subj || 'Unassigned';
+      ensureEntry(code);
+      const current = map.get(code);
+      map.set(code, { ...current, count: current.count + 1 });
     });
+
     subjects.forEach(subject => {
       const code = subject.code || subject.subject;
-      if (!code) return;
-      if (!map.has(code)) {
-        map.set(code, { subject: code, count: 0 });
-      }
+      ensureEntry(code);
     });
+
     return Array.from(map.values()).sort((a, b) => a.subject.localeCompare(b.subject));
-  }, [myStudents, subjects]);
+  }, [myStudents, subjects, curriculumSubjects]);
 
   const curriculumPrograms = useMemo(() => {
     const detected = curriculumSubjects.map(subject => subject.program).filter(Boolean);
@@ -96,10 +114,11 @@ export default function MySubjects({
 
   const existingSubjectCodes = useMemo(() => new Set(subjects.map(item => item.code || item.subject)), [subjects]);
 
-  function handleAddSubject(code) {
-    if (onCreateSubject) {
-      onCreateSubject(code);
-      setToast(`Subject ${code} added.`);
+  function handleAddSubject(subject) {
+    const payload = typeof subject === 'string' ? { code: subject } : subject;
+    if (onCreateSubject && payload?.code) {
+      onCreateSubject(payload);
+      setToast(`Subject ${payload.code} added.`);
     }
   }
 
@@ -156,6 +175,14 @@ export default function MySubjects({
                 <span className="ct">{subject.subject}</span>
                 <span className="badge info"><i className="ti ti-users" /> {subject.count} students</span>
               </div>
+              <div className="muted-text" style={{ marginBottom: '8px' }}>
+                {subject.title || 'Course description not available.'}
+              </div>
+              {(subject.program || subject.year || subject.semester) && (
+                <div className="muted-text" style={{ marginBottom: '10px' }}>
+                  {[subject.program, subject.year, subject.semester].filter(Boolean).join(' · ')}
+                </div>
+              )}
               <div className="inline-actions">
                 <button
                   className="btn sm"
@@ -247,7 +274,7 @@ export default function MySubjects({
                           <button
                             className={`btn sm ${exists ? '' : 'pri'}`}
                             disabled={exists}
-                            onClick={() => handleAddSubject(row.code)}
+                            onClick={() => handleAddSubject(row)}
                           >
                             {exists ? 'Added' : 'Add subject'}
                           </button>
@@ -348,7 +375,7 @@ export default function MySubjects({
           <button
             type="button"
             onClick={() => {
-              handleAddSubject(contextMenu.row.code);
+              handleAddSubject(contextMenu.row);
               setContextMenu(null);
             }}
           >
@@ -410,7 +437,7 @@ export default function MySubjects({
             </div>
             <div className="modal-actions">
               <button className="btn" onClick={() => setInfoRow(null)}>Close</button>
-              <button className="btn pri" onClick={() => handleAddSubject(infoRow.code)}>
+              <button className="btn pri" onClick={() => handleAddSubject(infoRow)}>
                 Add to my subjects
               </button>
             </div>

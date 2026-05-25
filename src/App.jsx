@@ -721,11 +721,20 @@ export default function App() {
   }
 
   function handleCreateSubject(subject) {
-    const normalized = String(subject || '').trim();
+    const payload = typeof subject === 'string' ? { code: subject } : subject || {};
+    const normalized = String(payload.code || '').trim();
     if (!normalized) return;
+    const title = payload.title ? String(payload.title).trim() : null;
     const prof = authUser?.email || curRole;
     if (subjects.some(item => item.code === normalized && item.prof === prof)) return;
-    setSubjects(prev => [...prev, { code: normalized, prof }]);
+    setSubjects(prev => [...prev, {
+      code: normalized,
+      prof,
+      title: title || undefined,
+      program: payload.program || undefined,
+      year: payload.year || undefined,
+      semester: payload.semester || undefined,
+    }]);
     const defaultPeriods = ['Prelim', 'Midterm', 'Semi-Final', 'Final'];
     setGradeSheets(prev => {
       const updates = defaultPeriods
@@ -740,7 +749,7 @@ export default function App() {
       return updates.length ? [...prev, ...updates] : prev;
     });
     if (authUser) {
-      insertSubject({ code: normalized, prof: authUser.email });
+      insertSubject({ code: normalized, prof: authUser.email, title });
       defaultPeriods.forEach(period => {
         insertGradeSheet({
           subject: normalized,
