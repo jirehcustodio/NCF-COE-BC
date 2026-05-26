@@ -21,6 +21,10 @@ export async function signOut() {
   return supabase.auth.signOut();
 }
 
+export async function requestPasswordReset(email) {
+  return supabase.auth.resetPasswordForEmail(email);
+}
+
 export async function updateUserMetadata(payload) {
   return supabase.auth.updateUser({ data: payload });
 }
@@ -79,6 +83,14 @@ export async function insertLog(payload) {
   return supabase.from('logs').insert(payload).select('*');
 }
 
+export async function fetchAuditLogs() {
+  return supabase.from('audit_logs').select('*').order('time', { ascending: false });
+}
+
+export async function fetchAuditPresence() {
+  return supabase.from('audit_presence').select('*');
+}
+
 export async function fetchInstructors() {
   return supabase.from('instructors').select('*').order('name', { ascending: true });
 }
@@ -135,22 +147,6 @@ export async function insertGradeSheet(payload) {
   return supabase.from('grade_sheets').insert(payload).select('*');
 }
 
-export async function fetchAuditLogs() {
-  return supabase.from('audit_logs').select('*').order('time', { ascending: false });
-}
-
-export async function insertAuditLog(payload) {
-  return supabase.from('audit_logs').insert(payload).select('*');
-}
-
-export async function fetchAuditPresence() {
-  return supabase.from('audit_presence').select('*').order('last_seen', { ascending: false });
-}
-
-export async function upsertAuditPresence(payload) {
-  return supabase.from('audit_presence').upsert(payload).select('*');
-}
-
 export async function upsertGradeSheet(payload) {
   return supabase.from('grade_sheets').upsert(payload).select('*');
 }
@@ -161,22 +157,6 @@ export async function fetchSubjects() {
 
 export async function insertSubject(payload) {
   return supabase.from('subjects').insert(payload).select('*');
-}
-
-export async function deleteSubject({ code, prof }) {
-  let query = supabase.from('subjects').delete().eq('code', code);
-  if (prof) query = query.eq('prof', prof);
-  return query;
-}
-
-export async function deleteGradeSheetsBySubject({ subject }) {
-  return supabase.from('grade_sheets').delete().eq('subject', subject);
-}
-
-export async function deleteStudentsBySubject({ subject, prof }) {
-  let query = supabase.from('students').delete().eq('subj', subject);
-  if (prof) query = query.eq('prof', prof);
-  return query;
 }
 
 export async function deleteSubjectsByProf(prof) {

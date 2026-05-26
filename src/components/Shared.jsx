@@ -47,3 +47,45 @@ export function LogEntry({ entry, showActor = false, actorName = '' }) {
     </div>
   );
 }
+
+export function HashDisplay({ label = 'Block Hash', value, showCopy = true }) {
+  if (!value) {
+    return (
+      <div style={{ marginBottom: 4 }}>
+        {label !== '' && <span style={{ color: 'var(--text-3)', fontSize: 11 }}>{label}: </span>}
+        <span className="hash">—</span>
+      </div>
+    );
+  }
+  const short = value.length > 12 ? `${value.slice(0, 6)}...${value.slice(-4)}` : value;
+  return (
+    <div style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      {label !== '' && <span style={{ color: 'var(--text-3)', fontSize: 11 }}>{label}:</span>}
+      <span className="hash" title={value}>{short}</span>
+      {showCopy && (
+        <button
+          className="btn sm"
+          type="button"
+          onClick={() => {
+            if (navigator.clipboard?.writeText) {
+              navigator.clipboard.writeText(value);
+            }
+          }}
+        >
+          <i className="ti ti-copy" /> Copy
+        </button>
+      )}
+    </div>
+  );
+}
+
+export function AccessDenied({ message = 'You do not have access to this page.' }) {
+  return (
+    <div className="card" style={{ maxWidth: 520 }}>
+      <div className="ch"><span className="ct">Access restricted</span></div>
+      <Notice type="warn" icon="ti-lock">
+        {message}
+      </Notice>
+    </div>
+  );
+}

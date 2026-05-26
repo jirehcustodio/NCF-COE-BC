@@ -4,6 +4,15 @@
    ============================================================ */
 
 export const ROLES = {
+  admin: {
+    name: 'Admin Account',
+    role: 'Admin — System Management',
+    av: 'AD',
+    type: 'admin',
+    color: 'admin',
+    dept: null,
+    subjects: [],
+  },
   dean: {
     name: 'Dean Account',
     role: 'Dean — Full Access',
@@ -17,12 +26,33 @@ export const ROLES = {
     name: 'Instructor Account',
     role: 'Instructor — Limited Access',
     av: 'IN',
-    type: 'prof',
+    type: 'instructor',
     color: 'prof',
     dept: '',
     subjects: [],
   },
 };
+
+export const ADMIN_NAV = [
+  {
+    sec: 'Overview',
+    items: [
+      { id: 'admindashboard', icon: 'ti-layout-dashboard', label: 'Admin Dashboard' },
+    ],
+  },
+  {
+    sec: 'User Management',
+    items: [
+      { id: 'instructors', icon: 'ti-user-check', label: 'Faculty Accounts' },
+    ],
+  },
+  {
+    sec: 'Security',
+    items: [
+      { id: 'activitylog', icon: 'ti-shield-alert', label: 'Activity Log & Security' },
+    ],
+  },
+];
 
 export const DEAN_NAV = [
   {
@@ -55,7 +85,6 @@ export const DEAN_NAV = [
     sec: 'Admin',
     items: [
       { id: 'submissions', icon: 'ti-clipboard-check', label: 'Submissions Log' },
-      { id: 'instructors', icon: 'ti-user-check',      label: 'Instructors' },
       { id: 'activitylog', icon: 'ti-shield-alert',    label: 'Activity Log & Security' },
     ],
   },

@@ -2,7 +2,7 @@
    MySubmissions.jsx — Instructor's own activity log
    ============================================================ */
 import React from 'react';
-import { Notice, LogEntry, EmptyState } from '../Shared';
+import { Notice, LogEntry, EmptyState, HashDisplay } from '../Shared';
 
 export function MySubmissions({ logs, curRole, profKey }) {
   const activeProf = profKey || curRole;
@@ -33,6 +33,19 @@ export function MySubmissions({ logs, curRole, profKey }) {
 export function MyChain({ blocks, curRole, profKey }) {
   const activeProf = profKey || curRole;
   const myBlocks = blocks.filter(b => b.prof === activeProf);
+  const verificationMap = React.useMemo(() => {
+    const ordered = [...myBlocks].sort((a, b) => Number(a.num) - Number(b.num));
+    const map = new Map();
+    ordered.forEach((block, index) => {
+      if (index === 0) {
+        map.set(`${block.num}-${block.hash}`, true);
+        return;
+      }
+      const prev = ordered[index - 1];
+      map.set(`${block.num}-${block.hash}`, block.prev === prev.hash);
+    });
+    return map;
+  }, [myBlocks]);
   return (
     <>
       <div className="ph">
@@ -48,16 +61,13 @@ export function MyChain({ blocks, curRole, profKey }) {
             <div className="bb" key={b.num}>
               <div className="bh">
                 <span className="bnum">Block #{b.num} — {b.subj} {b.period}</span>
-                <span className="badge chain"><i className="ti ti-lock" /> Immutable</span>
+                <span className={`badge ${verificationMap.get(`${b.num}-${b.hash}`) ? 'ok' : 'pend'}`}>
+                  <i className={`ti ${verificationMap.get(`${b.num}-${b.hash}`) ? 'ti-shield-check' : 'ti-clock'}`} />
+                  {verificationMap.get(`${b.num}-${b.hash}`) ? 'Verified' : 'Pending'}
+                </span>
               </div>
-              <div style={{ marginBottom: 4 }}>
-                <span style={{ color: 'var(--text-3)', fontSize: 11 }}>Hash: </span>
-                <span className="bhash">{b.hash}</span>
-              </div>
-              <div style={{ marginBottom: 4 }}>
-                <span style={{ color: 'var(--text-3)', fontSize: 11 }}>Prev: </span>
-                <span className="hash">{b.prev}</span>
-              </div>
+              <HashDisplay label="Block Hash" value={b.hash} />
+              <HashDisplay label="Previous Hash" value={b.prev} />
               <div className="block-meta">
                 <div><span>Students: </span>{b.count}</div>
                 <div><span>Period: </span>{b.period}</div>

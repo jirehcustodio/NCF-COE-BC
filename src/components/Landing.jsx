@@ -3,7 +3,7 @@
    ============================================================ */
 import React, { useState } from 'react';
 
-export default function Landing({ onLogin, onOpenCreate, authError, authLoading }) {
+export default function Landing({ onLogin, authError, authLoading }) {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
@@ -46,17 +46,6 @@ export default function Landing({ onLogin, onOpenCreate, authError, authLoading 
               Sign in
             </button>
           </div>
-          <div className="landing-link-row">
-            <span>Don’t have an account?</span>
-            <button
-              className="landing-link-btn"
-              type="button"
-              onClick={onOpenCreate}
-            >
-              Create account
-            </button>
-          </div>
-
           {authError && <div className="landing-error">{authError}</div>}
         </div>
       </div>

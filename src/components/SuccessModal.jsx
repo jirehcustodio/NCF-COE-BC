@@ -2,6 +2,7 @@
    SuccessModal.jsx — Blockchain commit confirmation modal
    ============================================================ */
 import React from 'react';
+import { HashDisplay } from './Shared';
 
 export default function SuccessModal({ data, onClose, onViewLedger }) {
   if (!data) return null;
@@ -19,7 +20,12 @@ export default function SuccessModal({ data, onClose, onViewLedger }) {
         </p>
         <div className="modal-meta">
           <div className="row"><span>Block #</span><span>{data.num}</span></div>
-          <div className="row"><span>Transaction Hash</span><span style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{data.hash}</span></div>
+          <div className="row" style={{ alignItems: 'flex-start' }}>
+            <span>Transaction Hash</span>
+            <span style={{ flex: 1 }}>
+              <HashDisplay label="" value={data.hash} />
+            </span>
+          </div>
           <div className="row"><span>Timestamp</span><span>{data.time}</span></div>
           <div className="row"><span>Subject</span><span>{data.subj} — {data.period}</span></div>
           <div className="row"><span>Students recorded</span><span>{data.count} students</span></div>

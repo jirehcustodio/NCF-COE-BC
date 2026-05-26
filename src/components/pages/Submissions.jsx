@@ -4,6 +4,7 @@ import { LogEntry } from '../Shared';
 
 export default function Submissions({ logs }) {
   const [filterProf, setFilterProf] = useState('');
+  const instructorOptions = Array.from(new Set(logs.map(l => l.prof).filter(Boolean)));
   const filtered = logs.filter(l => !filterProf || l.prof === filterProf);
 
   return (
@@ -17,12 +18,13 @@ export default function Submissions({ logs }) {
           <span className="ct">Activity log — all instructors</span>
           <select value={filterProf} onChange={e => setFilterProf(e.target.value)}>
             <option value="">All instructors</option>
-            <option value="reyes">Engr. Reyes</option>
-            <option value="lim">Engr. Lim</option>
+            {instructorOptions.map(id => (
+              <option key={id} value={id}>{ROLES[id]?.name || id}</option>
+            ))}
           </select>
         </div>
         {filtered.map((l, i) => (
-          <LogEntry key={i} entry={l} showActor actorName={ROLES[l.prof].name} />
+          <LogEntry key={i} entry={l} showActor actorName={ROLES[l.prof]?.name || l.prof || 'Instructor'} />
         ))}
       </div>
     </>

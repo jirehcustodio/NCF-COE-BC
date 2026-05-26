@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ROLES } from '../../data/appData';
 import { StatusBadge } from '../Shared';
 
-export default function AllGrades({ students, facultyRecords = [] }) {
+export default function AllGrades({ students, facultyRecords = [], blocks = [] }) {
   const [query, setQuery]   = useState('');
   const [prof,  setProf]    = useState('');
   const [subj,  setSubj]    = useState('');
@@ -26,6 +26,16 @@ export default function AllGrades({ students, facultyRecords = [] }) {
     const fromFaculty = facultyRecords.map(r => r.dept).filter(Boolean);
     return Array.from(new Set([...fromStudents, ...fromFaculty]));
   }, [students, facultyRecords]);
+
+  const onChainMap = useMemo(() => {
+    const map = new Set();
+    blocks.forEach(block => {
+      if (block?.prof && block?.subj) {
+        map.add(`${block.prof}::${block.subj}`);
+      }
+    });
+    return map;
+  }, [blocks]);
 
   const programByInstructor = useMemo(() => {
     const map = new Map();
@@ -91,7 +101,9 @@ export default function AllGrades({ students, facultyRecords = [] }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(s => (
+              {filtered.map(s => {
+                const derivedStatus = onChainMap.has(`${s.prof}::${s.subj}`) ? 'chain' : s.status;
+                return (
                 <tr key={`${s.id}-${s.subj}`}>
                   <td className="hash">{s.id}</td>
                   <td style={{ fontWeight: 500 }}>{s.name}</td>
@@ -102,9 +114,10 @@ export default function AllGrades({ students, facultyRecords = [] }) {
                   <td>{s.midterm ?? '—'}</td>
                   <td>{s.semi    ?? '—'}</td>
                   <td>{s.final   ?? '—'}</td>
-                  <td><StatusBadge status={s.status} /></td>
+                  <td><StatusBadge status={derivedStatus} /></td>
                 </tr>
-              ))}
+              );
+              })}
               {filtered.length === 0 && (
                 <tr><td colSpan={10} style={{ textAlign:'center', color:'var(--text-3)', padding:24 }}>No records found.</td></tr>
               )}

@@ -6,8 +6,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css';
 import {
   ROLES,
-  DEAN_NAV,
-  PROF_NAV,
   INITIAL_STUDENTS,
   INITIAL_BLOCKS,
   INITIAL_LOGS,
@@ -32,9 +30,6 @@ import {
   upsertCurriculumSubjects,
   insertBlock,
   insertLog,
-  insertAuditLog,
-  fetchAuditPresence,
-  upsertAuditPresence,
   deleteStudent,
   deleteAllStudents,
   insertSubject,
@@ -43,6 +38,7 @@ import {
   signInWithPassword,
   signOut,
   signUp,
+  requestPasswordReset,
   updateUserMetadata,
   fetchUserProfile,
   upsertUserProfile,
@@ -52,15 +48,13 @@ import {
   deleteFacultyRecord,
   deleteSubjectsByProf,
   deleteStudentsByProf,
-  deleteSubject,
-  deleteGradeSheetsBySubject,
-  deleteStudentsBySubject,
 } from './lib/queries';
 
 import Sidebar       from './components/Sidebar';
 import SuccessModal  from './components/SuccessModal';
+import { AccessDenied } from './components/Shared';
 import Landing       from './components/Landing';
-import CreateAccount from './components/CreateAccount';
+import AdminDashboard from './components/pages/AdminDashboard';
 import Onboarding    from './components/Onboarding';
 import ProfileModal  from './components/ProfileModal';
 
@@ -104,14 +98,12 @@ export default function App() {
   const [splashPhase, setSplashPhase] = useState('enter');
   const [showLanding, setShowLanding] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [curRole,    setCurRole]    = useState('dean');
   const [activePage, setActivePage] = useState('dashboard');
   const [students,   setStudents]   = useState(INITIAL_STUDENTS);
   const [blocks,     setBlocks]     = useState(INITIAL_BLOCKS);
   const [logs,       setLogs]       = useState(INITIAL_LOGS);
   const [auditLogs,  setAuditLogs]  = useState([]);
-  const [auditPresence, setAuditPresence] = useState([]);
   const [nextBlock,  setNextBlock]  = useState(1049);
   const [modal,      setModal]      = useState(null);
   const [authUser,   setAuthUser]   = useState(null);
@@ -129,123 +121,13 @@ export default function App() {
   const [allSubjects, setAllSubjects] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const isAdmin = ROLES[curRole]?.type === 'admin';
   const isDean = ROLES[curRole]?.type === 'dean';
   const onboardingKey = useMemo(() => (authUser?.id ? `onboarding_seen_${authUser.id}` : ''), [authUser?.id]);
   const [enrollSubject, setEnrollSubject] = useState('');
   const [uploadSubject, setUploadSubject] = useState('');
   const [activeSubject, setActiveSubject] = useState('');
   const isActiveRef = useRef(true);
-  const presenceTimerRef = useRef(null);
-  const localBlocksKey = 'localBlocks';
-
-  async function migrateLocalBlocks(user) {
-    if (!user || !isSupabaseConfigured) return;
-    try {
-      const stored = localStorage.getItem(localBlocksKey);
-      if (!stored) return;
-      const local = JSON.parse(stored) || [];
-      if (!local.length) return;
-      const prof = user.email || user.id;
-      const { data: existingBlocks } = await fetchBlocks();
-      const existingKeys = new Set((existingBlocks || []).map(block => `${block.num}-${block.hash}`));
-      const toInsert = local
-        .filter(block => block.prof === prof)
-        .filter(block => !existingKeys.has(`${block.num}-${block.hash}`))
-        .map(block => ({
-          num: block.num,
-          hash: block.hash,
-          prev: block.prev,
-          time: block.time,
-          prof: block.prof,
-          subj: block.subj,
-          period: block.period,
-          count: block.count,
-        }));
-
-      if (toInsert.length) {
-        await insertBlock(toInsert);
-      }
-    } catch (e) {
-      console.error('Failed to migrate local blocks:', e);
-    }
-  }
-
-  const presenceKey = 'presenceStatus';
-
-  function parseDeviceInfo(userAgent) {
-    const ua = userAgent || '';
-    if (ua.includes('iPhone') || ua.includes('iPad')) return { device: 'iOS Device', os: 'iOS' };
-    if (ua.includes('Android')) return { device: 'Android Device', os: 'Android' };
-    if (ua.includes('Windows')) return { device: 'Windows PC', os: 'Windows' };
-    if (ua.includes('Mac')) return { device: 'Mac', os: 'macOS' };
-    if (ua.includes('Linux')) return { device: 'Linux PC', os: 'Linux' };
-    return { device: 'Unknown Device', os: 'Unknown OS' };
-  }
-
-  function savePresence(entry) {
-    try {
-      const stored = localStorage.getItem(presenceKey);
-      const map = stored ? JSON.parse(stored) : {};
-      map[entry.user] = entry;
-      localStorage.setItem(presenceKey, JSON.stringify(map));
-    } catch (e) {
-      console.error('Failed to save presence state:', e);
-    }
-  }
-
-  async function updatePresence(user, status = 'online') {
-    if (!user) return;
-    const ua = navigator.userAgent || '';
-    let ipAddress = 'Unknown';
-    try {
-      const response = await fetch('https://api.ipify.org?format=json', { timeout: 5000 });
-      const data = await response.json();
-      ipAddress = data.ip || ipAddress;
-    } catch (e) {
-      ipAddress = 'Unavailable';
-    }
-
-    const { device, os } = parseDeviceInfo(ua);
-    const payload = {
-      user_id: user.email || user.id,
-      last_seen: new Date().toISOString(),
-      ip_address: ipAddress,
-      user_agent: ua,
-      device,
-      os,
-      status,
-    };
-
-    savePresence({
-      user: payload.user_id,
-      lastSeen: payload.last_seen,
-      ipAddress: payload.ip_address,
-      userAgent: payload.user_agent,
-      device: payload.device,
-      os: payload.os,
-      status: payload.status,
-    });
-
-    if (isSupabaseConfigured) {
-      await upsertAuditPresence(payload);
-      const { data } = await fetchAuditPresence();
-      setAuditPresence(data || []);
-    }
-  }
-
-  const navIdsForRole = useCallback((role) => {
-    const nav = ROLES[role]?.type === 'dean' ? DEAN_NAV : PROF_NAV;
-    return nav.flatMap(section => section.items.map(item => item.id));
-  }, []);
-
-  const getDefaultPage = useCallback((role) => (ROLES[role]?.type === 'dean' ? 'dashboard' : 'mystudents'), []);
-
-  const getPageStorageKey = useCallback((role, userId) => `active_page_${userId || role}`, []);
-
-  const resolveStoredPage = useCallback((role, stored) => {
-    if (!stored) return getDefaultPage(role);
-    return navIdsForRole(role).includes(stored) ? stored : getDefaultPage(role);
-  }, [getDefaultPage, navIdsForRole]);
 
   const programOptions = useMemo(() => {
     const fromCurriculum = curriculumSubjects.map(subject => subject.program).filter(Boolean);
@@ -262,9 +144,21 @@ export default function App() {
   const profileName = userProfile?.name || instructorProfile?.name || authUser?.email || ROLES[curRole]?.name;
   const profileAvatar = userProfile?.avatar_url || authUser?.user_metadata?.avatar_url || '';
 
-  function shouldShowOnboarding(user) {
+  function shouldShowOnboarding(user, roleType) {
     if (!user?.id) return false;
+    if (roleType && roleType !== 'instructor') return false;
     return !localStorage.getItem(`onboarding_seen_${user.id}`);
+  }
+
+  function resolveRole(role) {
+    const normalized = String(role || '').toLowerCase();
+    return ['admin', 'dean', 'instructor'].includes(normalized) ? normalized : 'instructor';
+  }
+
+  function getDefaultPage(role) {
+    if (role === 'admin') return 'admindashboard';
+    if (role === 'dean') return 'dashboard';
+    return 'mystudents';
   }
 
   function formatAuthError(error) {
@@ -321,35 +215,19 @@ export default function App() {
     // Fetch client IP from a public API
     fetch('https://api.ipify.org?format=json', { timeout: 5000 })
       .then(res => res.json())
-      .then(async data => {
-        const { device, os } = parseDeviceInfo(ua);
+      .then(data => {
         const newAuditLog = {
           prof: user.email || user.id,
-      user_id: user.email || user.id,
+          user: user.email || user.id,
           userAgent: ua,
           action: 'Login',
           time: new Date().toISOString(),
           ipAddress: data.ip || 'Unable to fetch IP',
-          device,
-          os,
+          device: 'Browser Session',
         };
         saveAuditLog(newAuditLog);
-        if (isSupabaseConfigured) {
-          await insertAuditLog({
-            prof: newAuditLog.prof,
-            user_id: newAuditLog.user,
-            user_agent: newAuditLog.userAgent,
-            action: 'Login',
-            time: newAuditLog.time,
-            ip_address: newAuditLog.ipAddress,
-            device,
-            os,
-          });
-        }
-        await updatePresence(user, 'online');
       })
-      .catch(async () => {
-        const { device, os } = parseDeviceInfo(ua);
+      .catch(() => {
         const newAuditLog = {
           prof: user.email || user.id,
           user: user.email || user.id,
@@ -357,23 +235,9 @@ export default function App() {
           action: 'Login',
           time: new Date().toISOString(),
           ipAddress: 'IP detection unavailable',
-          device,
-          os,
+          device: 'Browser Session',
         };
         saveAuditLog(newAuditLog);
-        if (isSupabaseConfigured) {
-          await insertAuditLog({
-            prof: newAuditLog.prof,
-            user_id: newAuditLog.user,
-            user_agent: newAuditLog.userAgent,
-            action: 'Login',
-            time: newAuditLog.time,
-            ip_address: null,
-            device,
-            os,
-          });
-        }
-        await updatePresence(user, 'online');
       });
   }
 
@@ -394,19 +258,6 @@ export default function App() {
     } catch (e) {
       console.error('Failed to save enrollment log to localStorage:', e);
     }
-
-    if (isSupabaseConfigured) {
-      insertAuditLog({
-  prof: enrollmentLog.prof,
-  user_id: enrollmentLog.user,
-        user_agent: enrollmentLog.userAgent,
-        action: enrollmentLog.action || 'Enrollment',
-        time: enrollmentLog.time,
-        ip_address: enrollmentLog.ipAddress || null,
-        device: enrollmentLog.device || null,
-        os: enrollmentLog.os || null,
-      });
-    }
   }
   
   useEffect(() => {
@@ -423,27 +274,6 @@ export default function App() {
   }, [showSplash]);
 
   useEffect(() => {
-    if (authUser || isSupabaseConfigured) return;
-    try {
-      const stored = localStorage.getItem(localBlocksKey);
-      if (stored) setBlocks(JSON.parse(stored));
-    } catch (e) {
-      console.error('Failed to load local blocks:', e);
-    }
-  }, [authUser]);
-
-  useEffect(() => {
-    if (authUser) return;
-    try {
-      if (blocks?.length) {
-        localStorage.setItem(localBlocksKey, JSON.stringify(blocks));
-      }
-    } catch (e) {
-      console.error('Failed to persist local blocks:', e);
-    }
-  }, [blocks, authUser]);
-
-  useEffect(() => {
     if (!isSupabaseConfigured) {
       setAuthError('Supabase is not configured. Add REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY to .env, then restart the dev server.');
       return () => {};
@@ -454,13 +284,11 @@ export default function App() {
       const sessionUser = data?.session?.user || null;
       setAuthUser(sessionUser);
       if (sessionUser) {
-        const role = sessionUser.user_metadata?.role === 'dean' ? 'dean' : 'instructor';
+        const role = resolveRole(sessionUser.user_metadata?.role);
         setCurRole(role);
-        const stored = localStorage.getItem(getPageStorageKey(role, sessionUser.email));
-        setActivePage(resolveStoredPage(role, stored));
+        setActivePage(getDefaultPage(role));
         setShowLanding(false);
-        setShowOnboarding(shouldShowOnboarding(sessionUser));
-        migrateLocalBlocks(sessionUser);
+        setShowOnboarding(shouldShowOnboarding(sessionUser, role));
       }
     });
 
@@ -468,17 +296,12 @@ export default function App() {
       const sessionUser = session?.user || null;
       setAuthUser(sessionUser);
       if (sessionUser) {
-        const role = sessionUser.user_metadata?.role === 'dean' ? 'dean' : 'instructor';
+        const role = resolveRole(sessionUser.user_metadata?.role);
         setCurRole(role);
-        const stored = localStorage.getItem(getPageStorageKey(role, sessionUser.email));
-        setActivePage(resolveStoredPage(role, stored));
+        setActivePage(getDefaultPage(role));
         setShowLanding(false);
-        setShowOnboarding(shouldShowOnboarding(sessionUser));
+        setShowOnboarding(shouldShowOnboarding(sessionUser, role));
         logDeviceLogin(sessionUser);
-        updatePresence(sessionUser);
-        if (presenceTimerRef.current) clearInterval(presenceTimerRef.current);
-        presenceTimerRef.current = setInterval(() => updatePresence(sessionUser), 2 * 60 * 1000);
-        migrateLocalBlocks(sessionUser);
       } else {
         setShowLanding(true);
         setShowOnboarding(false);
@@ -488,10 +311,6 @@ export default function App() {
     return () => {
       active = false;
       listener?.subscription?.unsubscribe();
-      if (presenceTimerRef.current) {
-        clearInterval(presenceTimerRef.current);
-        presenceTimerRef.current = null;
-      }
     };
   }, []);
 
@@ -525,7 +344,7 @@ export default function App() {
 
   if (!isActiveRef.current) return;
       const instructorKey = authUser.email;
-      const roleType = ROLES[curRole]?.type;
+  const roleType = ROLES[curRole]?.type;
 
       const normalize = (items) => Array.isArray(items) ? items : [];
   const studentsData = normalize(studentsRes.data).map(row => ({
@@ -536,57 +355,19 @@ export default function App() {
   const logsData = normalize(logsRes.data);
   const subjectsData = normalize(subjectsRes.data);
 
-      const localBlocks = (() => {
-        try {
-          const stored = localStorage.getItem(localBlocksKey);
-          return stored ? JSON.parse(stored) : [];
-        } catch (e) {
-          console.error('Failed to read local blocks:', e);
-          return [];
-        }
-      })();
-
       // Keep an unfiltered copy of subjects for pages that need to show all subjects
       setAllSubjects(subjectsData);
-      if (roleType === 'dean') {
-        const mergedBlocks = [...blocksData, ...localBlocks].reduce((acc, block) => {
-          const key = `${block.num}-${block.hash}`;
-          if (!acc.map.has(key)) {
-            acc.map.set(key, true);
-            acc.items.push(block);
-          }
-          return acc;
-        }, { items: [], map: new Map() }).items;
+      const canViewAll = roleType === 'dean' || roleType === 'admin';
+      if (canViewAll) {
         setStudents(studentsData);
-        setBlocks(mergedBlocks);
+        setBlocks(blocksData);
         setLogs(logsData);
         setSubjects(subjectsData);
-        if (mergedBlocks.length) {
-          const maxNum = Math.max(...mergedBlocks.map(block => Number(block.num) || 0));
-          setNextBlock(maxNum + 1);
-        }
       } else {
-        const instructorStudents = studentsData.filter(row => row.prof === instructorKey);
-        const instructorBlocks = blocksData.filter(row => row.prof === instructorKey);
-        const instructorLogs = logsData.filter(row => row.prof === instructorKey);
-        const instructorSubjects = subjectsData.filter(row => row.prof === instructorKey);
-        const localInstructorBlocks = localBlocks.filter(block => block.prof === instructorKey);
-        const mergedBlocks = [...instructorBlocks, ...localInstructorBlocks].reduce((acc, block) => {
-          const key = `${block.num}-${block.hash}`;
-          if (!acc.map.has(key)) {
-            acc.map.set(key, true);
-            acc.items.push(block);
-          }
-          return acc;
-        }, { items: [], map: new Map() }).items;
-        setStudents(instructorStudents);
-        setBlocks(mergedBlocks);
-        setLogs(instructorLogs);
-        setSubjects(instructorSubjects);
-        if (mergedBlocks.length) {
-          const maxNum = Math.max(...mergedBlocks.map(block => Number(block.num) || 0));
-          setNextBlock(maxNum + 1);
-        }
+        setStudents(studentsData.filter(row => row.prof === instructorKey));
+        setBlocks(blocksData.filter(row => row.prof === instructorKey));
+        setLogs(logsData.filter(row => row.prof === instructorKey));
+        setSubjects(subjectsData.filter(row => row.prof === instructorKey));
       }
 
   const fallback = (data) => (Array.isArray(data) ? data : []);
@@ -600,8 +381,13 @@ export default function App() {
     setGradeSheets(fallback(gradeSheetsRes.data));
   setUserProfile(profileRes?.data || null);
     if (authUser && ROLES[curRole]?.type === 'instructor') {
-      const hasProfile = facultyData.some(record => record.id === authUser.email);
-      if (!hasProfile) setShowOnboarding(true);
+      const profile = facultyData.find(record => record.id === authUser.email);
+      if (profile?.status === 'Inactive') {
+        setAuthError('Your account is deactivated. Please contact the administrator.');
+        await handleLogout();
+        return;
+      }
+      if (!profile) setShowOnboarding(true);
     }
   }, [authUser, curRole, showLanding]);
 
@@ -648,20 +434,9 @@ export default function App() {
   }
 
   if (showLanding) {
-    if (showCreateAccount) {
-      return (
-        <CreateAccount
-          onCreateAccount={handleCreateAccount}
-          onBack={() => setShowCreateAccount(false)}
-          authError={authError}
-          authLoading={authLoading}
-        />
-      );
-    }
     return (
       <Landing
         onLogin={handleLogin}
-        onOpenCreate={() => setShowCreateAccount(true)}
         authError={authError}
         authLoading={authLoading}
       />
@@ -719,56 +494,57 @@ export default function App() {
       return;
     }
     setAuthUser(data.user || null);
-    const role = data.user?.user_metadata?.role === 'dean' ? 'dean' : 'instructor';
+    const role = resolveRole(data.user?.user_metadata?.role);
     setCurRole(role);
-  const stored = localStorage.getItem(getPageStorageKey(role, data.user?.email));
-  setActivePage(resolveStoredPage(role, stored));
+    setActivePage(getDefaultPage(role));
     setShowLanding(false);
-    setShowCreateAccount(false);
-    setShowOnboarding(shouldShowOnboarding(data.user));
-    migrateLocalBlocks(data.user);
+    setShowOnboarding(shouldShowOnboarding(data.user, role));
   }
 
-  async function handleCreateAccount({ email, password, role }) {
+  async function handleCreateAccount({ email, password, role, name, program, status }) {
     setAuthError('');
     setAuthLoading(true);
     const { data, error } = await signUp({ email, password, role });
     setAuthLoading(false);
     if (error) {
-      setAuthError(formatAuthError(error));
-      return;
+      return { error: formatAuthError(error) };
     }
-    if (!data?.session?.user) {
-      setAuthError('Account created, but no session was returned. This usually means email confirmation is enabled or the user is unconfirmed. Disable email confirmation and confirm/delete the user in Supabase → Authentication → Users, then sign in.');
-      return;
+    if (name || program || status) {
+      const payload = {
+        id: email,
+        name: name || email,
+        dept: program || '',
+        rank: role === 'dean' ? 'Dean' : 'Instructor',
+        status: status || 'Active',
+      };
+      await upsertFacultyRecord(payload);
+      setFacultyRecords(prev => {
+        const exists = prev.find(record => record.id === payload.id);
+        if (exists) {
+          return prev.map(record => (record.id === payload.id ? { ...record, ...payload } : record));
+        }
+        return [...prev, payload];
+      });
     }
-    setAuthUser(data.session.user);
-    const createdRole = role === 'dean' ? 'dean' : 'instructor';
-    setCurRole(createdRole);
-  const stored = localStorage.getItem(getPageStorageKey(createdRole, data.session.user?.email));
-  setActivePage(resolveStoredPage(createdRole, stored));
-    setShowLanding(false);
-    setShowCreateAccount(false);
-    setShowOnboarding(shouldShowOnboarding(data.session.user));
-    migrateLocalBlocks(data.session.user);
+    if (data?.session?.user) {
+      await signOut();
+      setShowLanding(true);
+      setAuthUser(null);
+      return { warning: 'Account created, but the session switched. Please sign in again as admin.' };
+    }
+    return { ok: true };
+  }
+
+  async function handleResetInstructorPassword(email) {
+    if (!email) return { error: 'Email is required.' };
+    const { error } = await requestPasswordReset(email);
+    if (error) {
+      return { error: error.message || 'Failed to send reset email.' };
+    }
+    return { ok: true };
   }
 
   async function handleLogout() {
-    if (authUser) {
-      const ua = navigator.userAgent || '';
-      const { device, os } = parseDeviceInfo(ua);
-      await insertAuditLog({
-        prof: authUser.email || authUser.id,
-        user_id: authUser.email || authUser.id,
-        user_agent: ua,
-        action: 'Logout',
-        time: new Date().toISOString(),
-        ip_address: null,
-        device,
-        os,
-      });
-      await updatePresence(authUser, 'offline');
-    }
     await signOut();
     setShowLanding(true);
     setShowOnboarding(false);
@@ -779,33 +555,12 @@ export default function App() {
   function handleRoleChange(role) {
     if (authUser) return;
     setCurRole(role);
-    const stored = localStorage.getItem(getPageStorageKey(role));
-    setActivePage(resolveStoredPage(role, stored));
+    setActivePage(getDefaultPage(role));
   }
 
   /* ---- Navigation ---- */
   function handleNavigate(page) {
     setActivePage(page);
-    const key = getPageStorageKey(curRole, authUser?.email);
-    localStorage.setItem(key, page);
-  }
-
-  async function handleDeleteSubject(subjectCode) {
-    if (!subjectCode) return;
-    const prof = authUser?.email || curRole;
-    setSubjects(prev => prev.filter(item => !(item.code === subjectCode && item.prof === prof)));
-    setAllSubjects(prev => prev.filter(item => !(item.code === subjectCode && item.prof === prof)));
-    setStudents(prev => prev.filter(student => !(student.subj === subjectCode && student.prof === prof)));
-    setGradeSheets(prev => prev.filter(sheet => sheet.subject !== subjectCode));
-    if (activeSubject === subjectCode) setActiveSubject('');
-    if (uploadSubject === subjectCode) setUploadSubject('');
-    if (enrollSubject === subjectCode) setEnrollSubject('');
-
-    if (authUser) {
-      await deleteStudentsBySubject({ subject: subjectCode, prof });
-      await deleteGradeSheetsBySubject({ subject: subjectCode });
-      await deleteSubject({ code: subjectCode, prof });
-    }
   }
 
   /* ---- Blockchain commit (from Upload page) ---- */
@@ -814,8 +569,8 @@ export default function App() {
     const hash    = genHash();
     const now     = nowStr();
     const profKey = authUser?.email || curRole;
-    const myS     = students.filter(s => s.prof === profKey);
     const subjCode = subject.split('–')[0].trim();
+    const myS     = students.filter(s => s.prof === profKey && s.subj === subjCode);
 
     // Update student grades and statuses
     setStudents(prev => prev.map(s => {
@@ -841,13 +596,6 @@ export default function App() {
       subj: subjCode, period, count: myS.length,
     };
     setBlocks(prev => [...prev, newBlock]);
-    try {
-      const stored = localStorage.getItem(localBlocksKey);
-      const existing = stored ? JSON.parse(stored) : [];
-      localStorage.setItem(localBlocksKey, JSON.stringify([...existing, newBlock]));
-    } catch (e) {
-      console.error('Failed to store block locally:', e);
-    }
 
     // Add log entry
     const newLog = {
@@ -878,70 +626,41 @@ export default function App() {
     setNextBlock(n => n + 1);
 
     if (authUser) {
-      myS.forEach(student => {
-        const vals = gradeValues[student.id];
-        if (!vals) return;
-        upsertStudent({
-          ...student,
-          prof: authUser.email,
-          prelim: parseInt(vals.prelim) || student.prelim,
-          midterm: parseInt(vals.midterm) || student.midterm,
-          semi: parseInt(vals.semi) || student.semi,
-          final: parseInt(vals.final) || student.final,
-          status: 'chain',
-          upload_method: 'Uploaded (committed)',
+      try {
+        await Promise.all(myS.map(student => {
+          const vals = gradeValues[student.id];
+          if (!vals) return Promise.resolve();
+          return upsertStudent({
+            ...student,
+            prof: authUser.email,
+            prelim: parseInt(vals.prelim) || student.prelim,
+            midterm: parseInt(vals.midterm) || student.midterm,
+            semi: parseInt(vals.semi) || student.semi,
+            final: parseInt(vals.final) || student.final,
+            status: 'chain',
+            upload_method: 'Uploaded (committed)',
+          });
+        }));
+
+        const { error: blockError } = await insertBlock(newBlock);
+        if (blockError) throw blockError;
+
+        const { error: logError } = await insertLog(newLog);
+        if (logError) throw logError;
+
+        const { error: sheetError } = await upsertGradeSheet({
+          subject: subjCode,
+          section: myS[0]?.section || 'TBA',
+          period,
+          last_updated: now,
+          status: 'Submitted',
         });
-      });
-      const { error: blockError } = await insertBlock({
-        num: newBlock.num,
-        hash: newBlock.hash,
-        prev: newBlock.prev,
-        time: newBlock.time,
-        prof: newBlock.prof,
-        subj: newBlock.subj,
-        period: newBlock.period,
-        count: newBlock.count,
-      });
-      if (blockError) {
-        console.error('Failed to persist block to Supabase:', blockError);
-      }
-
-      const { error: logError } = await insertLog(newLog);
-      if (logError) {
-        console.error('Failed to persist log to Supabase:', logError);
-      }
-
-      const { error: sheetError } = await upsertGradeSheet({
-        subject: subjCode,
-        section: myS[0]?.section || 'TBA',
-        period,
-        last_updated: now,
-        status: 'Submitted',
-      });
-      if (sheetError) {
-        console.error('Failed to persist grade sheet to Supabase:', sheetError);
+        if (sheetError) throw sheetError;
+      } catch (error) {
+        console.error('Failed to persist blockchain commit:', error);
+        throw error;
       }
     }
-  }
-
-  function handleSaveUploadedGrades({ subject, period, gradeValues }) {
-    if (!authUser || !subject) return;
-    const profKey = authUser.email;
-    const subjectStudents = students.filter(student => student.prof === profKey && student.subj === subject);
-    subjectStudents.forEach(student => {
-      const vals = gradeValues[student.id];
-      if (!vals) return;
-      upsertStudent({
-        ...student,
-        prof: profKey,
-        prelim: parseInt(vals.prelim) || student.prelim,
-        midterm: parseInt(vals.midterm) || student.midterm,
-        semi: parseInt(vals.semi) || student.semi,
-        final: parseInt(vals.final) || student.final,
-        status: student.status || 'uploaded',
-        upload_method: 'Uploaded (draft)',
-      });
-    });
   }
 
   function handleEnroll({ students: studentsToEnroll, subject }) {
@@ -1002,7 +721,7 @@ export default function App() {
   }
 
   async function handleDeleteStudent(student) {
-    const shouldScopeToProf = ROLES[curRole]?.type !== 'dean';
+    const shouldScopeToProf = ROLES[curRole]?.type === 'instructor';
     setStudents(prev => prev.filter(s => !(s.id === student.id && s.subj === student.subj && s.prof === student.prof)));
     if (authUser) {
       await deleteStudent({
@@ -1042,20 +761,11 @@ export default function App() {
   }
 
   function handleCreateSubject(subject) {
-    const payload = typeof subject === 'string' ? { code: subject } : subject || {};
-    const normalized = String(payload.code || '').trim();
+    const normalized = String(subject || '').trim();
     if (!normalized) return;
-    const title = payload.title ? String(payload.title).trim() : null;
     const prof = authUser?.email || curRole;
     if (subjects.some(item => item.code === normalized && item.prof === prof)) return;
-    setSubjects(prev => [...prev, {
-      code: normalized,
-      prof,
-      title: title || undefined,
-      program: payload.program || undefined,
-      year: payload.year || undefined,
-      semester: payload.semester || undefined,
-    }]);
+    setSubjects(prev => [...prev, { code: normalized, prof }]);
     const defaultPeriods = ['Prelim', 'Midterm', 'Semi-Final', 'Final'];
     setGradeSheets(prev => {
       const updates = defaultPeriods
@@ -1070,7 +780,7 @@ export default function App() {
       return updates.length ? [...prev, ...updates] : prev;
     });
     if (authUser) {
-      insertSubject({ code: normalized, prof: authUser.email, title });
+      insertSubject({ code: normalized, prof: authUser.email });
       defaultPeriods.forEach(period => {
         insertGradeSheet({
           subject: normalized,
@@ -1176,10 +886,21 @@ export default function App() {
     enrollmentRecords,
     gradeSheets,
   };
+  const canViewDean = isDean;
+  const canViewAdmin = isAdmin;
 
     switch (activePage) {
       // Dean pages
-      case 'dashboard':    return isDean ? (
+      case 'admindashboard': return canViewAdmin ? (
+        <AdminDashboard
+          facultyRecords={facultyRecords}
+          blocks={blocks}
+          logs={logs}
+        />
+      ) : (
+        <AccessDenied message="Admin access required." />
+      );
+      case 'dashboard':    return canViewDean ? (
         <Dashboard
           {...props}
           facultyRecords={facultyRecords}
@@ -1187,24 +908,24 @@ export default function App() {
           onClearStudents={handleClearStudents}
         />
       ) : (
-        <MyStudents {...props} onNavigate={handleNavigate} onDeleteStudent={handleDeleteStudent} allowDelete />
+        <AccessDenied message="Dean access required." />
       );
-  case 'allgrades':    return isDean ? <AllGrades {...props} facultyRecords={facultyRecords} /> : (
-        <MyStudents {...props} onNavigate={handleNavigate} onDeleteStudent={handleDeleteStudent} allowDelete />
+  case 'allgrades':    return canViewDean ? <AllGrades {...props} facultyRecords={facultyRecords} blocks={blocks} /> : (
+        <AccessDenied message="Dean access required." />
       );
-      case 'allstudents':  return isDean ? (
+      case 'allstudents':  return canViewDean ? (
         <AllStudents
           {...props}
           logs={logs}
           onDeleteStudent={handleDeleteStudent}
         />
       ) : (
-        <MyStudents {...props} onNavigate={handleNavigate} onDeleteStudent={handleDeleteStudent} allowDelete />
+        <AccessDenied message="Dean access required." />
       );
-      case 'ledger':       return isDean ? <Ledger {...props} /> : <MyChain {...props} />;
+      case 'ledger':       return canViewDean ? <Ledger {...props} /> : <MyChain {...props} />;
       case 'verify':       return <Verify {...props} />;
-      case 'submissions':  return isDean ? <Submissions {...props} /> : <MySubmissions {...props} />;
-      case 'instructors':  return isDean ? (
+      case 'submissions':  return canViewDean ? <Submissions {...props} /> : <MySubmissions {...props} />;
+      case 'instructors':  return canViewAdmin ? (
         <Instructors
           instructors={instructors}
           facultyRecords={facultyRecords}
@@ -1213,23 +934,38 @@ export default function App() {
           blocks={blocks}
           logs={logs}
           onDeleteInstructor={handleDeleteInstructor}
+          onCreateInstructor={handleCreateAccount}
+          onResetInstructorPassword={handleResetInstructorPassword}
+          onToggleInstructorStatus={(row) => {
+            const status = row.recordStatus === 'Inactive' ? 'Active' : 'Inactive';
+            const payload = {
+              id: row.id,
+              name: row.name || row.id,
+              dept: row.dept || '',
+              rank: 'Instructor',
+              status,
+            };
+            upsertFacultyRecord(payload);
+            setFacultyRecords(prev => prev.map(record => (record.id === row.id ? { ...record, status } : record)));
+          }}
+          allowCreate
         />
       ) : (
-        <MyStudents {...props} onNavigate={handleNavigate} onDeleteStudent={handleDeleteStudent} allowDelete />
+        <AccessDenied message="Admin access required." />
       );
-      case 'facultyrecords': return isDean
+      case 'facultyrecords': return canViewDean
         ? <FacultyRecords {...academicProps} />
-        : <MyStudents {...props} onNavigate={handleNavigate} onDeleteStudent={handleDeleteStudent} allowDelete />;
-      case 'siasdocs':       return isDean
+        : <AccessDenied message="Dean access required." />;
+      case 'siasdocs':       return canViewDean
         ? <SiasDocs {...academicProps} />
-        : <MyStudents {...props} onNavigate={handleNavigate} onDeleteStudent={handleDeleteStudent} allowDelete />;
-      case 'curriculum':     return isDean
+        : <AccessDenied message="Dean access required." />;
+      case 'curriculum':     return canViewDean
         ? <Curriculum curriculumSubjects={curriculumSubjects} onImportCurriculum={handleImportCurriculum} />
-        : <MyStudents {...props} onNavigate={handleNavigate} onDeleteStudent={handleDeleteStudent} allowDelete />;
-      case 'periodical':     return isDean
+        : <AccessDenied message="Dean access required." />;
+      case 'periodical':     return canViewDean
         ? <PeriodicalGradeRecording {...props} profKey={profKey} isDeanView onSavePeriodicalGrades={handleSavePeriodicalGrades} />
         : <PeriodicalGradeRecording {...props} profKey={profKey} onSavePeriodicalGrades={handleSavePeriodicalGrades} />;
-      case 'facultygrades':  return isDean
+      case 'facultygrades':  return canViewDean
         ? <FacultyGradeRecord {...props} profKey={profKey} isDeanView />
         : <FacultyGradeRecord {...props} profKey={profKey} />;
       case 'enroll':         return (
@@ -1253,7 +989,6 @@ export default function App() {
           curriculumSubjects={curriculumSubjects}
           program={instructorProgram}
           onCreateSubject={handleCreateSubject}
-          onDeleteSubject={handleDeleteSubject}
           onEnrollSubject={(subject) => {
             setEnrollSubject(subject);
             handleNavigate('enroll');
@@ -1318,7 +1053,6 @@ export default function App() {
           {...props}
           subjects={subjects}
           onCommit={handleCommit}
-          onSaveGrades={handleSaveUploadedGrades}
           initialSubject={uploadSubject}
           onEnrollSubject={(subject) => {
             setEnrollSubject(subject);
@@ -1330,7 +1064,14 @@ export default function App() {
   case 'mychain':       return <MyChain       {...props} profKey={profKey} />;
   case 'activitylog':   return <ActivityLog logs={logs} auditLogs={auditLogs} setAuditLogs={setAuditLogs} curRole={curRole} profKey={profKey} />;
 
-      default: return <Dashboard {...props} />;
+      default:
+        if (canViewAdmin) {
+          return <AdminDashboard facultyRecords={facultyRecords} blocks={blocks} logs={logs} />;
+        }
+        if (canViewDean) {
+          return <Dashboard {...props} facultyRecords={facultyRecords} gradeSheets={gradeSheets} onClearStudents={handleClearStudents} />;
+        }
+        return <MyStudents {...props} onNavigate={handleNavigate} onDeleteStudent={handleDeleteStudent} allowDelete />;
     }
   }
 
@@ -1346,7 +1087,7 @@ export default function App() {
         onRoleChange={handleRoleChange}
         onNavigate={handleNavigate}
         onLogout={handleLogout}
-        showRoleSwitcher={!authUser}
+        showRoleSwitcher={isAdmin}
       />
       <div className="main">
         {renderPage()}

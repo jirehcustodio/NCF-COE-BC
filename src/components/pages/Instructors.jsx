@@ -9,11 +9,22 @@ export default function Instructors({
   blocks = [],
   logs = [],
   onDeleteInstructor,
+  onCreateInstructor,
+  onToggleInstructorStatus,
+  onResetInstructorPassword,
+  allowCreate = false,
 }) {
   const [query, setQuery] = useState('');
   const [program, setProgram] = useState('');
   const [showDelete, setShowDelete] = useState(false);
   const [selectedInstructor, setSelectedInstructor] = useState(null);
+  const [formEmail, setFormEmail] = useState('');
+  const [formName, setFormName] = useState('');
+  const [formProgram, setFormProgram] = useState('');
+  const [formRole, setFormRole] = useState('instructor');
+  const [formPassword, setFormPassword] = useState('');
+  const [formStatus, setFormStatus] = useState('Active');
+  const [formMessage, setFormMessage] = useState('');
   const rows = instructors.length ? instructors : facultyRecords;
   const facultyById = useMemo(() => {
     const map = new Map();
@@ -65,6 +76,7 @@ export default function Instructors({
     const subjectCount = subjects.filter(item => item.prof === id).length ||
       Array.from(new Set(students.filter(student => student.prof === id).map(student => student.subj))).length;
     const status = uploads > 0 ? 'ok' : 'pend';
+    const recordStatus = row.status || facultyById.get(id)?.status || 'Active';
     return {
       id,
       name,
@@ -73,6 +85,7 @@ export default function Instructors({
       subjects: subjectCount,
       last: lastLog?.time || '—',
       status,
+      recordStatus,
     };
   });
 
@@ -89,12 +102,90 @@ export default function Instructors({
     setSelectedInstructor(null);
   }
 
+  async function handleCreateAccount() {
+    if (!onCreateInstructor) return;
+    setFormMessage('');
+    if (!formEmail || !formPassword || !formName) {
+      setFormMessage('Please provide name, email, and a temporary password.');
+      return;
+    }
+    const result = await onCreateInstructor({
+      email: formEmail,
+      password: formPassword,
+      role: formRole,
+      name: formName,
+      program: formProgram,
+      status: formStatus,
+    });
+    if (result?.error) {
+      setFormMessage(result.error);
+      return;
+    }
+    if (result?.warning) {
+      setFormMessage(result.warning);
+    } else {
+      setFormMessage('Account request submitted. Ask the user to sign in and update their password.');
+    }
+    setFormEmail('');
+    setFormPassword('');
+    setFormName('');
+    setFormProgram('');
+    setFormRole('instructor');
+    setFormStatus('Active');
+  }
+
   return (
     <>
       <div className="ph">
-        <h2>Instructors</h2>
-        <p>Registered faculty with system access — Dean only</p>
+        <h2>Faculty accounts</h2>
+        <p>Registered faculty with system access — Admin only</p>
       </div>
+      {allowCreate && (
+        <div className="card" style={{ marginBottom: 18 }}>
+          <div className="ch"><span className="ct">Create faculty account</span></div>
+          <div className="grid-two" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+            <div className="fg">
+              <label>Email</label>
+              <input value={formEmail} onChange={event => setFormEmail(event.target.value)} placeholder="faculty@school.edu" />
+            </div>
+            <div className="fg">
+              <label>Temporary password</label>
+              <input type="password" value={formPassword} onChange={event => setFormPassword(event.target.value)} placeholder="Temp password" />
+            </div>
+            <div className="fg">
+              <label>Full name</label>
+              <input value={formName} onChange={event => setFormName(event.target.value)} placeholder="Instructor name" />
+            </div>
+            <div className="fg">
+              <label>Program/Department</label>
+              <input value={formProgram} onChange={event => setFormProgram(event.target.value)} placeholder="BSCE, BSCpE..." />
+            </div>
+            <div className="fg">
+              <label>Role</label>
+              <select value={formRole} onChange={event => setFormRole(event.target.value)}>
+                <option value="instructor">Instructor</option>
+                <option value="dean">Dean</option>
+              </select>
+            </div>
+            <div className="fg">
+              <label>Status</label>
+              <select value={formStatus} onChange={event => setFormStatus(event.target.value)}>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+          <div className="inline-actions" style={{ marginTop: 12 }}>
+            <button className="btn pri" onClick={handleCreateAccount}>
+              <i className="ti ti-user-plus" /> Create account
+            </button>
+            {formMessage && <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{formMessage}</span>}
+          </div>
+          <Notice type="info" icon="ti-info-circle">
+            Accounts are created via Supabase Auth. If email confirmations are enabled, the user must confirm before signing in.
+          </Notice>
+        </div>
+      )}
       <div className="card">
         <div className="search-row">
           <input
@@ -114,7 +205,7 @@ export default function Instructors({
             <thead>
               <tr>
                 <th>Name</th><th>Program</th><th>Subjects</th>
-                <th>Uploads</th><th>Last active</th><th>Status</th><th />
+                  <th>Uploads</th><th>Last active</th><th>Status</th><th />
               </tr>
             </thead>
             <tbody>
@@ -133,14 +224,42 @@ export default function Instructors({
                   <td>{r.uploads}</td>
                   <td style={{ fontSize: 11 }}>{r.last}</td>
                   <td>
-                    {r.status === 'ok'
-                      ? <span className="badge ok"><i className="ti ti-check" /> Active</span>
-                      : <span className="badge pend"><i className="ti ti-clock" /> Pending</span>}
+                    {r.recordStatus === 'Inactive'
+                      ? <span className="badge warn"><i className="ti ti-lock" /> Inactive</span>
+                      : r.status === 'ok'
+                        ? <span className="badge ok"><i className="ti ti-check" /> Active</span>
+                        : <span className="badge pend"><i className="ti ti-clock" /> Pending</span>}
                   </td>
                   <td>
-                    <button className="btn sm" onClick={() => confirmDelete(r)}>
-                      <i className="ti ti-trash" /> Delete
-                    </button>
+                    <div className="inline-actions">
+                      {allowCreate && (
+                        <button
+                          className="btn sm"
+                          onClick={() => onToggleInstructorStatus && onToggleInstructorStatus(r)}
+                        >
+                          <i className="ti ti-power" /> {r.recordStatus === 'Inactive' ? 'Activate' : 'Deactivate'}
+                        </button>
+                      )}
+                      {allowCreate && (
+                        <button
+                          className="btn sm"
+                          onClick={async () => {
+                            if (!onResetInstructorPassword) return;
+                            const result = await onResetInstructorPassword(r.id);
+                            if (result?.error) {
+                              setFormMessage(result.error);
+                            } else {
+                              setFormMessage('Password reset email sent.');
+                            }
+                          }}
+                        >
+                          <i className="ti ti-mail" /> Reset password
+                        </button>
+                      )}
+                      <button className="btn sm" onClick={() => confirmDelete(r)}>
+                        <i className="ti ti-trash" /> Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ROLES } from '../../data/appData';
+import { HashDisplay } from '../Shared';
 
-export default function Verify({ students, curRole }) {
+export default function Verify({ students, blocks = [], curRole }) {
   const [studentId, setStudentId] = useState('NCF-2021-0042');
   const [subject,   setSubject]   = useState('CE 401');
   const [result,    setResult]    = useState(null);
@@ -10,13 +11,16 @@ export default function Verify({ students, curRole }) {
     const s = students.find(st => st.id === studentId.trim());
 
     // Instructor can only verify their own students
-    if (ROLES[curRole].type === 'prof' && s && s.prof !== curRole) {
+    if (ROLES[curRole]?.type === 'instructor' && s && s.prof !== curRole) {
       setResult({ type: 'err', msg: 'Access denied. You can only verify your own students.' });
       return;
     }
 
     if (s && s.status === 'chain') {
-      setResult({ type: 'suc', student: s });
+      const matchingBlocks = blocks.filter(block => block.subj === subject);
+      const latestBlock = matchingBlocks
+        .sort((a, b) => Number(b.num) - Number(a.num))[0];
+      setResult({ type: 'suc', student: s, block: latestBlock });
     } else {
       setResult({ type: 'warn', msg: 'No verified blockchain record found for this student/subject combination.' });
     }
@@ -56,8 +60,8 @@ export default function Verify({ students, curRole }) {
                 <i className="ti ti-shield-check" />
                 <div>
                   <strong>Grade verified — integrity confirmed</strong><br />
-                  {result.student.name} · {result.student.subj} · {ROLES[result.student.prof].name}<br />
-                  <span className="hash">Hash: 0xa3f8...c221 · Block #1045</span><br />
+                  {result.student.name} · {result.student.subj} · {ROLES[result.student.prof]?.name || result.student.prof}<br />
+                  <HashDisplay label="Block Hash" value={result.block?.hash} showCopy={false} />
                   <span style={{ fontSize: 11 }}>All grade values match the on-chain record. No tampering detected.</span>
                 </div>
               </div>

@@ -1,8 +1,30 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ROLES } from '../../data/appData';
-import { Notice } from '../Shared';
+import { HashDisplay, Notice } from '../Shared';
 
 export default function Ledger({ blocks }) {
+  const verificationMap = useMemo(() => {
+    const map = new Map();
+    const byProf = new Map();
+    blocks.forEach(block => {
+      const key = block.prof || 'unknown';
+      if (!byProf.has(key)) byProf.set(key, []);
+      byProf.get(key).push(block);
+    });
+    byProf.forEach(list => {
+      const ordered = [...list].sort((a, b) => Number(a.num) - Number(b.num));
+      ordered.forEach((block, index) => {
+        if (index === 0) {
+          map.set(`${block.num}-${block.hash}`, true);
+          return;
+        }
+        const prev = ordered[index - 1];
+        map.set(`${block.num}-${block.hash}`, block.prev === prev.hash);
+      });
+    });
+    return map;
+  }, [blocks]);
+
   return (
     <>
       <div className="ph">
@@ -14,27 +36,28 @@ export default function Ledger({ blocks }) {
         including the Dean or system administrators. This guarantees tamper-proof academic records.
       </Notice>
       <div className="block-chain">
-        {[...blocks].reverse().map(b => (
-          <div className="bb" key={b.num}>
-            <div className="bh">
-              <span className="bnum">Block #{b.num} — {b.subj} {b.period} · {ROLES[b.prof].name}</span>
-              <span className="badge chain"><i className="ti ti-lock" /> Immutable</span>
+        {[...blocks].reverse().map(b => {
+          const verified = verificationMap.get(`${b.num}-${b.hash}`);
+          const instructorName = ROLES[b.prof]?.name || b.prof || 'Instructor';
+          return (
+            <div className="bb" key={b.num}>
+              <div className="bh">
+                <span className="bnum">Block #{b.num} — {b.subj} {b.period} · {instructorName}</span>
+                <span className={`badge ${verified ? 'ok' : 'pend'}`}>
+                  <i className={`ti ${verified ? 'ti-shield-check' : 'ti-clock'}`} />
+                  {verified ? 'Verified' : 'Pending'}
+                </span>
+              </div>
+              <HashDisplay label="Block Hash" value={b.hash} />
+              <HashDisplay label="Previous Hash" value={b.prev} />
+              <div className="block-meta">
+                <div><span>Students: </span>{b.count}</div>
+                <div><span>Period: </span>{b.period}</div>
+                <div><span>Committed: </span>{b.time}</div>
+              </div>
             </div>
-            <div style={{ marginBottom: 4 }}>
-              <span style={{ color: 'var(--text-3)', fontSize: 11 }}>Hash: </span>
-              <span className="bhash">{b.hash}</span>
-            </div>
-            <div style={{ marginBottom: 4 }}>
-              <span style={{ color: 'var(--text-3)', fontSize: 11 }}>Prev: </span>
-              <span className="hash">{b.prev}</span>
-            </div>
-            <div className="block-meta">
-              <div><span>Students: </span>{b.count}</div>
-              <div><span>Period: </span>{b.period}</div>
-              <div><span>Committed: </span>{b.time}</div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );
