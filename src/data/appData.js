@@ -6,7 +6,7 @@
 export const ROLES = {
   admin: {
     name: 'Admin Account',
-    role: 'Admin — System Management',
+    role: 'Admin — Account Management',
     av: 'AD',
     type: 'admin',
     color: 'admin',
@@ -15,7 +15,7 @@ export const ROLES = {
   },
   dean: {
     name: 'Dean Account',
-    role: 'Dean — Full Access',
+    role: 'Dean — Academic Oversight',
     av: 'DN',
     type: 'dean',
     color: 'dean',
@@ -37,13 +37,19 @@ export const ADMIN_NAV = [
   {
     sec: 'Overview',
     items: [
-      { id: 'admindashboard', icon: 'ti-layout-dashboard', label: 'Admin Dashboard' },
+      { id: 'dashboard', icon: 'ti-layout-dashboard', label: 'Dashboard' },
     ],
   },
   {
     sec: 'User Management',
     items: [
-      { id: 'instructors', icon: 'ti-user-check', label: 'Faculty Accounts' },
+      { id: 'instructors', icon: 'ti-user-check', label: 'Faculty Accounts (Create)' },
+    ],
+  },
+  {
+    sec: 'Academics',
+    items: [
+      { id: 'curriculum', icon: 'ti-book', label: 'Curriculum' },
     ],
   },
   {
@@ -58,7 +64,7 @@ export const DEAN_NAV = [
   {
     sec: 'Overview',
     items: [
-      { id: 'dashboard',   icon: 'ti-layout-dashboard', label: 'Dashboard' },
+      { id: 'dashboard', icon: 'ti-layout-dashboard', label: 'Dashboard' },
       { id: 'allgrades',   icon: 'ti-table',             label: 'All Grade Records' },
       { id: 'allstudents', icon: 'ti-users',              label: 'All Student Lists' },
       { id: 'enroll',      icon: 'ti-user-plus',          label: 'Enroll a Student' },
@@ -78,6 +84,7 @@ export const DEAN_NAV = [
     sec: 'Blockchain',
     items: [
       { id: 'ledger', icon: 'ti-link',         label: 'Blockchain Ledger' },
+      { id: 'commits', icon: 'ti-git-commit',  label: 'Committed Blockchain' },
       { id: 'verify', icon: 'ti-shield-check', label: 'Verify Grade' },
     ],
   },
@@ -85,6 +92,7 @@ export const DEAN_NAV = [
     sec: 'Admin',
     items: [
       { id: 'submissions', icon: 'ti-clipboard-check', label: 'Submissions Log' },
+      { id: 'instructors', icon: 'ti-user-check',      label: 'Faculty Accounts' },
       { id: 'activitylog', icon: 'ti-shield-alert',    label: 'Activity Log & Security' },
     ],
   },
@@ -106,6 +114,7 @@ export const PROF_NAV = [
     items: [
       { id: 'periodical',    icon: 'ti-calendar-stats', label: 'Periodical Grade Recording' },
       { id: 'facultygrades', icon: 'ti-report',         label: 'Faculty Grade Record' },
+      { id: 'curriculum',    icon: 'ti-book',           label: 'Curriculum' },
     ],
   },
   {

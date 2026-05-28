@@ -12,7 +12,6 @@ export default function MySubjects({
   onEnrollSubject,
   onOpenSubject,
   onCreateSubject,
-  onDeleteSubject,
   onRefresh,
   refreshing = false,
 }) {
@@ -26,7 +25,6 @@ export default function MySubjects({
   const [curriculumSearch, setCurriculumSearch] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
   const [infoRow, setInfoRow] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -54,39 +52,21 @@ export default function MySubjects({
   }, [contextMenu]);
 
   const subjectCards = useMemo(() => {
-    const subjectMap = new Map(subjects.map(item => [item.code || item.subject, item]));
-    const curriculumMap = new Map(curriculumSubjects.map(item => [item.code, item]));
     const map = new Map();
-
-    const ensureEntry = (code) => {
-      if (!code) return;
-      const subjectInfo = subjectMap.get(code);
-      const curriculumInfo = curriculumMap.get(code);
-      const current = map.get(code) || {
-        subject: code,
-        title: subjectInfo?.title || curriculumInfo?.title || '',
-        program: subjectInfo?.program || curriculumInfo?.program || '',
-        year: subjectInfo?.year || curriculumInfo?.year || '',
-        semester: subjectInfo?.semester || curriculumInfo?.semester || '',
-        count: 0,
-      };
-      map.set(code, current);
-    };
-
     myStudents.forEach(student => {
-      const code = student.subj || 'Unassigned';
-      ensureEntry(code);
-      const current = map.get(code);
-      map.set(code, { ...current, count: current.count + 1 });
+      const subject = student.subj || 'Unassigned';
+      const current = map.get(subject) || { subject, count: 0 };
+      map.set(subject, { ...current, count: current.count + 1 });
     });
-
     subjects.forEach(subject => {
       const code = subject.code || subject.subject;
-      ensureEntry(code);
+      if (!code) return;
+      if (!map.has(code)) {
+        map.set(code, { subject: code, count: 0 });
+      }
     });
-
     return Array.from(map.values()).sort((a, b) => a.subject.localeCompare(b.subject));
-  }, [myStudents, subjects, curriculumSubjects]);
+  }, [myStudents, subjects]);
 
   const curriculumPrograms = useMemo(() => {
     const detected = curriculumSubjects.map(subject => subject.program).filter(Boolean);
@@ -116,11 +96,10 @@ export default function MySubjects({
 
   const existingSubjectCodes = useMemo(() => new Set(subjects.map(item => item.code || item.subject)), [subjects]);
 
-  function handleAddSubject(subject) {
-    const payload = typeof subject === 'string' ? { code: subject } : subject;
-    if (onCreateSubject && payload?.code) {
-      onCreateSubject(payload);
-      setToast(`Subject ${payload.code} added.`);
+  function handleAddSubject(code) {
+    if (onCreateSubject) {
+      onCreateSubject(code);
+      setToast(`Subject ${code} added.`);
     }
   }
 
@@ -131,15 +110,6 @@ export default function MySubjects({
     } else {
       setToast('Copy not supported in this browser.');
     }
-  }
-
-  function confirmDelete() {
-    if (!deleteTarget?.subject) return;
-    if (onDeleteSubject) {
-      onDeleteSubject(deleteTarget.subject);
-      setToast(`Subject ${deleteTarget.subject} deleted.`);
-    }
-    setDeleteTarget(null);
   }
 
   return (
@@ -186,16 +156,6 @@ export default function MySubjects({
                 <span className="ct">{subject.subject}</span>
                 <span className="badge info"><i className="ti ti-users" /> {subject.count} students</span>
               </div>
-              <div className="muted-text" style={{ marginBottom: '8px' }}>
-                {subject.title || 'Course description not available.'}
-              </div>
-              {(subject.program || subject.year || subject.semester) && (
-                <div className="muted-text" style={{ marginBottom: '10px' }}>
-                  {subject.program && <span>Program: {subject.program}</span>}
-                  {subject.year && <span>{subject.program ? ' · ' : ''}Year: {subject.year}</span>}
-                  {subject.semester && <span>{subject.program || subject.year ? ' · ' : ''}Semester: {subject.semester}</span>}
-                </div>
-              )}
               <div className="inline-actions">
                 <button
                   className="btn sm"
@@ -214,12 +174,6 @@ export default function MySubjects({
                   onClick={() => onUploadSubject(subject.subject)}
                 >
                   <i className="ti ti-upload" /> Upload grades
-                </button>
-                <button
-                  className="btn sm"
-                  onClick={() => setDeleteTarget(subject)}
-                >
-                  <i className="ti ti-trash" /> Delete
                 </button>
               </div>
             </div>
@@ -293,7 +247,7 @@ export default function MySubjects({
                           <button
                             className={`btn sm ${exists ? '' : 'pri'}`}
                             disabled={exists}
-                            onClick={() => handleAddSubject(row)}
+                            onClick={() => handleAddSubject(row.code)}
                           >
                             {exists ? 'Added' : 'Add subject'}
                           </button>
@@ -394,7 +348,7 @@ export default function MySubjects({
           <button
             type="button"
             onClick={() => {
-              handleAddSubject(contextMenu.row);
+              handleAddSubject(contextMenu.row.code);
               setContextMenu(null);
             }}
           >
@@ -456,30 +410,8 @@ export default function MySubjects({
             </div>
             <div className="modal-actions">
               <button className="btn" onClick={() => setInfoRow(null)}>Close</button>
-              <button className="btn pri" onClick={() => handleAddSubject(infoRow)}>
+              <button className="btn pri" onClick={() => handleAddSubject(infoRow.code)}>
                 Add to my subjects
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {deleteTarget && (
-        <div className="modal-bg open" onClick={() => setDeleteTarget(null)}>
-          <div className="modal" onClick={event => event.stopPropagation()}>
-            <div className="modal-hdr">
-              <h3>Delete subject</h3>
-              <button className="close-btn" onClick={() => setDeleteTarget(null)}><i className="ti ti-x" /></button>
-            </div>
-            <div className="modal-content">
-              <Notice type="warn" icon="ti-alert-triangle">
-                This will remove <strong>{deleteTarget.subject}</strong> from your subjects list and unlink enrolled students and grade sheets for this subject.
-              </Notice>
-            </div>
-            <div className="modal-actions">
-              <button className="btn" onClick={() => setDeleteTarget(null)}>Cancel</button>
-              <button className="btn pri" onClick={confirmDelete}>
-                <i className="ti ti-trash" /> Delete subject
               </button>
             </div>
           </div>

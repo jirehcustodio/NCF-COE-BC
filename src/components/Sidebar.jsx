@@ -17,11 +17,7 @@ export default function Sidebar({
   showRoleSwitcher = true,
 }) {
   const rd   = ROLES[curRole];
-  const nav = rd.type === 'admin'
-    ? ADMIN_NAV
-    : rd.type === 'dean'
-      ? DEAN_NAV
-      : PROF_NAV;
+  const nav  = rd.type === 'admin' ? ADMIN_NAV : rd.type === 'dean' ? DEAN_NAV : PROF_NAV;
   const displayName = userName || rd.name;
   const initials = displayName.split(' ').slice(0, 2).map(part => part[0]).join('').toUpperCase();
 
@@ -86,7 +82,6 @@ export default function Sidebar({
             <div className="lbl">Switch account (prototype demo)</div>
             <div className="role-btns">
               {[
-                { key: 'admin',      label: 'Admin' },
                 { key: 'dean',       label: 'Dean' },
                 { key: 'instructor', label: 'Instructor' },
               ].map(r => (

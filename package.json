@@ -5,6 +5,7 @@
   "dependencies": {
     "@babel/runtime": "^7.29.2",
     "@supabase/supabase-js": "^2.105.4",
+  "dotenv": "^16.4.5",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.3",
     "mammoth": "^1.6.0",
@@ -13,15 +14,12 @@
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
     "tesseract.js": "^5.0.4",
-    "yaml": "2.9.0",
     "xlsx": "^0.18.5"
-  },
-  "devDependencies": {
-    "typescript": "4.9.5"
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build"
+    "build": "react-scripts build",
+    "bootstrap:admin": "node scripts/bootstrap-admin.mjs"
   },
   "browserslist": {
     "production": [

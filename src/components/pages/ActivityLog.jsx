@@ -4,8 +4,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Notice, EmptyState } from '../Shared';
 import { ROLES } from '../../data/appData';
-import { isSupabaseConfigured } from '../../lib/supabaseClient';
-import { fetchAuditLogs, fetchAuditPresence } from '../../lib/queries';
 
 // Helper: Load audit logs from localStorage
 const loadAuditLogsFromStorage = () => {
@@ -30,14 +28,11 @@ const saveAuditLogsToStorage = (logs) => {
 export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKey, onEnrollmentLogged }) {
   const activeProf = profKey || curRole;
   const rd = ROLES[curRole];
+  const canViewAll = rd?.type === 'dean' || rd?.type === 'admin';
   const [selectedTab, setSelectedTab] = useState('submissions');
   const [deviceFilter, setDeviceFilter] = useState('all');
   const [accountFilter, setAccountFilter] = useState('all');
   const [persistentAuditLogs, setPersistentAuditLogs] = useState(() => loadAuditLogsFromStorage());
-  const [presenceMap, setPresenceMap] = useState({});
-  const [remoteAuditLogs, setRemoteAuditLogs] = useState([]);
-  const [remotePresence, setRemotePresence] = useState([]);
-  const [auditLoading, setAuditLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 40;
 
@@ -46,48 +41,11 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
     saveAuditLogsToStorage(persistentAuditLogs);
   }, [persistentAuditLogs]);
 
-  useEffect(() => {
-    const loadPresence = () => {
-      try {
-        const stored = localStorage.getItem('presenceStatus');
-        setPresenceMap(stored ? JSON.parse(stored) : {});
-      } catch (e) {
-        console.error('Failed to load presence state:', e);
-        setPresenceMap({});
-      }
-    };
-    loadPresence();
-    const timer = setInterval(loadPresence, 30000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured) return undefined;
-    let active = true;
-    const loadRemoteAudit = async () => {
-      setAuditLoading(true);
-      const [auditRes, presenceRes] = await Promise.all([
-        fetchAuditLogs(),
-        fetchAuditPresence(),
-      ]);
-      if (!active) return;
-      setRemoteAuditLogs(auditRes.data || []);
-      setRemotePresence(presenceRes.data || []);
-      setAuditLoading(false);
-    };
-    loadRemoteAudit();
-    const timer = setInterval(loadRemoteAudit, 60000);
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, []);
-
   // Merge in-memory logs with persistent logs (avoid duplicates)
   const combinedAuditLogs = useMemo(() => {
     const combined = [...persistentAuditLogs];
     const persistedIds = new Set(persistentAuditLogs.map(l => `${l.prof}-${l.time}-${l.action}`));
-
+    
     (auditLogs || []).forEach(log => {
       const logId = `${log.prof}-${log.time}-${log.action}`;
       if (!persistedIds.has(logId)) {
@@ -95,23 +53,8 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
       }
     });
 
-    (remoteAuditLogs || []).forEach(log => {
-      const logId = `${log.prof || log.user_id}-${log.time}-${log.action}`;
-      if (!persistedIds.has(logId)) {
-        combined.push({
-          ...log,
-          prof: log.prof || log.user_id,
-          user: log.user_id || log.prof,
-          userAgent: log.user_agent || log.userAgent,
-          ipAddress: log.ip_address || log.ipAddress,
-          device: log.device || log.device,
-          os: log.os || log.os,
-        });
-      }
-    });
-
     return combined.sort((a, b) => new Date(b.time) - new Date(a.time));
-  }, [auditLogs, persistentAuditLogs, remoteAuditLogs]);
+  }, [auditLogs, persistentAuditLogs]);
 
   // Filter activity logs for current user
   const myLogs = useMemo(() => {
@@ -120,81 +63,56 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
 
   // ALL audit logs enriched with device detection (visible to all accounts)
   const allAuditLogsEnriched = useMemo(() => {
-    const remotePresenceMap = (remotePresence || []).reduce((acc, entry) => {
-      if (!entry?.user_id) return acc;
-      acc[entry.user_id] = {
-        user: entry.user_id,
-        lastSeen: entry.last_seen,
-        ipAddress: entry.ip_address,
-        userAgent: entry.user_agent,
-        device: entry.device,
-        os: entry.os,
-        status: entry.status,
-      };
-      return acc;
-    }, {});
-    const mergedPresence = { ...presenceMap, ...remotePresenceMap };
-    const logsWithPresence = [...(combinedAuditLogs || [])];
-    Object.values(mergedPresence).forEach(entry => {
-      if (!entry?.user || !entry?.lastSeen) return;
-      const exists = logsWithPresence.some(log => log.prof === entry.user && log.time === entry.lastSeen);
-      if (!exists) {
-        logsWithPresence.push({
-          prof: entry.user,
-          user: entry.user,
-          action: 'Online',
-          time: entry.lastSeen,
-          ipAddress: entry.ipAddress,
-          userAgent: entry.userAgent,
-        });
-      }
-    });
+    return (combinedAuditLogs || [])
+      .map(log => {
+        // Detect device from user agent or system info
+        const ua = log.userAgent || '';
+        let device = 'Unknown Device';
+        let deviceIcon = 'ti-device-laptop';
+        let os = 'Unknown OS';
 
-    return logsWithPresence.map(log => {
-      const ua = log.userAgent || mergedPresence[log.prof || log.user]?.userAgent || '';
-      const presence = mergedPresence[log.prof || log.user];
-      let device = 'Unknown Device';
-      let deviceIcon = 'ti-device-laptop';
-      let os = 'Unknown OS';
+        if (ua.includes('iPhone') || ua.includes('iPad')) {
+          device = 'iOS Device';
+          deviceIcon = 'ti-device-mobile';
+          os = 'iOS';
+        } else if (ua.includes('Android')) {
+          device = 'Android Device';
+          deviceIcon = 'ti-device-mobile';
+          os = 'Android';
+        } else if (ua.includes('Windows')) {
+          device = 'Windows PC';
+          deviceIcon = 'ti-device-laptop';
+          os = 'Windows';
+        } else if (ua.includes('Mac')) {
+          device = 'Mac';
+          deviceIcon = 'ti-device-laptop';
+          os = 'macOS';
+        } else if (ua.includes('Linux')) {
+          device = 'Linux PC';
+          deviceIcon = 'ti-device-laptop';
+          os = 'Linux';
+        }
 
-      if (ua.includes('iPhone') || ua.includes('iPad')) {
-        device = 'iOS Device';
-        deviceIcon = 'ti-device-mobile';
-        os = 'iOS';
-      } else if (ua.includes('Android')) {
-        device = 'Android Device';
-        deviceIcon = 'ti-device-mobile';
-        os = 'Android';
-      } else if (ua.includes('Windows')) {
-        device = 'Windows PC';
-        deviceIcon = 'ti-device-laptop';
-        os = 'Windows';
-      } else if (ua.includes('Mac')) {
-        device = 'Mac';
-        deviceIcon = 'ti-device-laptop';
-        os = 'macOS';
-      } else if (ua.includes('Linux')) {
-        device = 'Linux PC';
-        deviceIcon = 'ti-device-laptop';
-        os = 'Linux';
-      }
+        // Check if account is online (last login within last 5 minutes)
+        const logTime = new Date(log.time).getTime();
+        const now = new Date().getTime();
+        const isOnline = (now - logTime) < 5 * 60 * 1000; // 5 minutes
 
-  const logTime = new Date(presence?.lastSeen || log.time).getTime();
-      const now = new Date().getTime();
-      const isOnline = (now - logTime) < 5 * 60 * 1000;
-      const account = log.prof || log.user;
+        return { ...log, device, deviceIcon, os, isOnline, account: log.prof || log.user };
+      });
+  }, [combinedAuditLogs]);
 
-      return {
-        ...log,
-        device,
-        deviceIcon,
-        os,
-        isOnline,
-        account,
-        ipAddress: log.ipAddress || presence?.ipAddress,
-      };
-    }).sort((a, b) => new Date(b.time) - new Date(a.time));
-  }, [combinedAuditLogs, presenceMap, remotePresence]);
+  const submissionLogs = useMemo(() => {
+    return canViewAll ? logs : myLogs;
+  }, [canViewAll, logs, myLogs]);
+
+  const enrollmentLogs = useMemo(() => {
+    return allAuditLogsEnriched.filter(log => log.action === 'Enrollment');
+  }, [allAuditLogsEnriched]);
+
+  const commitLogs = useMemo(() => {
+    return logs.filter(log => String(log.desc || '').toLowerCase().includes('committed'));
+  }, [logs]);
 
   // Get unique accounts
   const accountOptions = useMemo(() => {
@@ -259,7 +177,7 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
       </div>
 
       <Notice type="info" icon="ti-lock">
-        All activity is logged for security purposes. You can see where and when your account was accessed.
+        All activity is logged for security purposes. {canViewAll ? 'You can review enrollments, grade submissions, and commits.' : 'You can see where and when your account was accessed.'}
       </Notice>
 
       {/* Tab Navigation */}
@@ -278,8 +196,44 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
             transition: 'all 0.2s',
           }}
         >
-          <i className="ti ti-upload" /> Submissions ({myLogs.length})
+          <i className="ti ti-upload" /> {canViewAll ? 'Grade submissions' : 'My submissions'} ({submissionLogs.length})
         </button>
+        {canViewAll && (
+          <button
+            onClick={() => setSelectedTab('enrollments')}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '6px',
+              border: 'none',
+              background: selectedTab === 'enrollments' ? 'var(--primary-light)' : 'transparent',
+              color: selectedTab === 'enrollments' ? '#fff' : 'var(--text)',
+              cursor: 'pointer',
+              fontWeight: selectedTab === 'enrollments' ? '600' : '500',
+              fontSize: '13px',
+              transition: 'all 0.2s',
+            }}
+          >
+            <i className="ti ti-user-plus" /> Enrollments ({enrollmentLogs.length})
+          </button>
+        )}
+        {canViewAll && (
+          <button
+            onClick={() => setSelectedTab('commits')}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '6px',
+              border: 'none',
+              background: selectedTab === 'commits' ? 'var(--primary-light)' : 'transparent',
+              color: selectedTab === 'commits' ? '#fff' : 'var(--text)',
+              cursor: 'pointer',
+              fontWeight: selectedTab === 'commits' ? '600' : '500',
+              fontSize: '13px',
+              transition: 'all 0.2s',
+            }}
+          >
+            <i className="ti ti-link" /> Blockchain commits ({commitLogs.length})
+          </button>
+        )}
         <button
           onClick={() => setSelectedTab('audit')}
           style={{
@@ -302,13 +256,13 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
       {selectedTab === 'submissions' && (
         <div className="card">
           <div className="ch">
-            <span className="ct"><i className="ti ti-upload" /> My submissions</span>
+            <span className="ct"><i className="ti ti-upload" /> {canViewAll ? 'Grade submissions' : 'My submissions'}</span>
           </div>
-          {myLogs.length === 0 ? (
+          {submissionLogs.length === 0 ? (
             <EmptyState icon="ti-clipboard-x">No submissions yet. Upload your first grade sheet to get started.</EmptyState>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {myLogs.map((log, i) => (
+              {submissionLogs.map((log, i) => (
                 <div
                   key={i}
                   style={{
@@ -326,6 +280,11 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
                       <p style={{ margin: '0', fontSize: '12px', color: 'var(--text-2)' }}>
                         {formatTime(log.time)}
                       </p>
+                      {canViewAll && log.prof && (
+                        <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-3)' }}>
+                          By: {log.prof}
+                        </p>
+                      )}
                     </div>
                     <span
                       style={{
@@ -347,18 +306,82 @@ export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKe
         </div>
       )}
 
+      {canViewAll && selectedTab === 'enrollments' && (
+        <div className="card">
+          <div className="ch">
+            <span className="ct"><i className="ti ti-user-plus" /> Enrollment activity</span>
+          </div>
+          {enrollmentLogs.length === 0 ? (
+            <EmptyState icon="ti-user-plus">No enrollment activity recorded yet.</EmptyState>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {enrollmentLogs.map((log, i) => (
+                <div
+                  key={i}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(128, 0, 32, 0.12)',
+                    background: '#f9f9f9',
+                  }}
+                >
+                  <p style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: '600', color: 'var(--text)' }}>
+                    {log.desc || 'Enrollment activity'}
+                  </p>
+                  <p style={{ margin: '0', fontSize: '12px', color: 'var(--text-2)' }}>
+                    {formatTime(log.time)}
+                  </p>
+                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-3)' }}>
+                    By: {log.account || log.prof || log.user || '—'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {canViewAll && selectedTab === 'commits' && (
+        <div className="card">
+          <div className="ch">
+            <span className="ct"><i className="ti ti-link" /> Blockchain commits</span>
+          </div>
+          {commitLogs.length === 0 ? (
+            <EmptyState icon="ti-link">No blockchain commits recorded yet.</EmptyState>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {commitLogs.map((log, i) => (
+                <div
+                  key={i}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(128, 0, 32, 0.12)',
+                    background: '#f9f9f9',
+                  }}
+                >
+                  <p style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: '600', color: 'var(--text)' }}>
+                    {log.desc || 'Blockchain commit'}
+                  </p>
+                  <p style={{ margin: '0', fontSize: '12px', color: 'var(--text-2)' }}>
+                    {formatTime(log.time)}
+                  </p>
+                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-3)' }}>
+                    By: {log.prof || '—'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Account Security / Audit Log Tab */}
       {selectedTab === 'audit' && (
         <div className="card">
           <div className="ch">
             <span className="ct"><i className="ti ti-shield-alert" /> Account Security Audit (All Accounts)</span>
           </div>
-
-          {auditLoading && (
-            <Notice type="info" icon="ti-loader">
-              Loading latest audit logs and device presence...
-            </Notice>
-          )}
 
           {/* Account & Device Filters */}
           <div style={{ marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid rgba(128, 0, 32, 0.12)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>

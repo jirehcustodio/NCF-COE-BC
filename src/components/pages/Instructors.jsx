@@ -12,6 +12,7 @@ export default function Instructors({
   onCreateInstructor,
   onToggleInstructorStatus,
   onResetInstructorPassword,
+  onUpdateInstructorRole,
   allowCreate = false,
 }) {
   const [query, setQuery] = useState('');
@@ -63,6 +64,8 @@ export default function Instructors({
     return Array.from(new Set(fromRows)).sort((a, b) => a.localeCompare(b));
   }, [rows]);
 
+  const programOptions = useMemo(() => ['BSCE', 'BSCpE', 'BSGE'], []);
+
   const filteredByProgram = filtered.filter(row => {
     if (!program) return true;
     return getProgram(row) === program;
@@ -106,7 +109,7 @@ export default function Instructors({
     if (!onCreateInstructor) return;
     setFormMessage('');
     if (!formEmail || !formPassword || !formName) {
-      setFormMessage('Please provide name, email, and a temporary password.');
+      setFormMessage('Please provide name, email, and a password.');
       return;
     }
     const result = await onCreateInstructor({
@@ -121,11 +124,11 @@ export default function Instructors({
       setFormMessage(result.error);
       return;
     }
-    if (result?.warning) {
-      setFormMessage(result.warning);
-    } else {
-      setFormMessage('Account request submitted. Ask the user to sign in and update their password.');
-    }
+      if (result?.warning) {
+        setFormMessage(result.warning);
+      } else {
+        setFormMessage('Account created with the provided password.');
+      }
     setFormEmail('');
     setFormPassword('');
     setFormName('');
@@ -134,11 +137,29 @@ export default function Instructors({
     setFormStatus('Active');
   }
 
+  async function handleUpdateRole(row) {
+    if (!onUpdateInstructorRole) return;
+    const suggested = row?.role || 'instructor';
+    const nextRole = window.prompt('Enter role (admin, dean, instructor):', suggested);
+    if (!nextRole) return;
+    const normalized = nextRole.trim().toLowerCase();
+    if (!['admin', 'dean', 'instructor'].includes(normalized)) {
+      setFormMessage('Invalid role. Use admin, dean, or instructor.');
+      return;
+    }
+    const result = await onUpdateInstructorRole({ email: row.id, role: normalized });
+    if (result?.error) {
+      setFormMessage(result.error);
+    } else {
+      setFormMessage(`Role updated to ${normalized}.`);
+    }
+  }
+
   return (
     <>
       <div className="ph">
         <h2>Faculty accounts</h2>
-        <p>Registered faculty with system access — Admin only</p>
+        <p>Registered faculty with system access — Admin & Dean</p>
       </div>
       {allowCreate && (
         <div className="card" style={{ marginBottom: 18 }}>
@@ -149,8 +170,8 @@ export default function Instructors({
               <input value={formEmail} onChange={event => setFormEmail(event.target.value)} placeholder="faculty@school.edu" />
             </div>
             <div className="fg">
-              <label>Temporary password</label>
-              <input type="password" value={formPassword} onChange={event => setFormPassword(event.target.value)} placeholder="Temp password" />
+                 <label>Password</label>
+                  <input type="password" value={formPassword} onChange={event => setFormPassword(event.target.value)} placeholder="Password" />
             </div>
             <div className="fg">
               <label>Full name</label>
@@ -158,7 +179,12 @@ export default function Instructors({
             </div>
             <div className="fg">
               <label>Program/Department</label>
-              <input value={formProgram} onChange={event => setFormProgram(event.target.value)} placeholder="BSCE, BSCpE..." />
+              <select value={formProgram} onChange={event => setFormProgram(event.target.value)}>
+                <option value="">Select program</option>
+                {programOptions.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
             </div>
             <div className="fg">
               <label>Role</label>
@@ -254,6 +280,11 @@ export default function Instructors({
                           }}
                         >
                           <i className="ti ti-mail" /> Reset password
+                        </button>
+                      )}
+                      {allowCreate && (
+                        <button className="btn sm" onClick={() => handleUpdateRole(r)}>
+                          <i className="ti ti-shield-check" /> Set role
                         </button>
                       )}
                       <button className="btn sm" onClick={() => confirmDelete(r)}>

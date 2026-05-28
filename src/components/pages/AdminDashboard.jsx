@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Notice } from '../Shared';
 
-export default function AdminDashboard({ facultyRecords = [], blocks = [], logs = [] }) {
+export default function AdminDashboard({ facultyRecords = [], blocks = [], logs = [], onNavigate }) {
   const totals = useMemo(() => {
     const active = facultyRecords.filter(record => record.status !== 'Inactive').length;
     const inactive = facultyRecords.filter(record => record.status === 'Inactive').length;
@@ -40,6 +40,17 @@ export default function AdminDashboard({ facultyRecords = [], blocks = [], logs 
           <div className="sl">Blockchain Commits</div>
           <div className="sv">{totals.commits}</div>
           <div className="ss">Total blocks</div>
+        </div>
+      </div>
+      <div className="card" style={{ marginTop: 18 }}>
+        <div className="ch"><span className="ct">Create accounts</span></div>
+        <p style={{ margin: '0 0 12px', color: 'var(--text-2)', fontSize: 13 }}>
+          Go to Faculty Accounts to create instructor or dean logins.
+        </p>
+        <div className="inline-actions">
+          <button className="btn pri" onClick={() => onNavigate && onNavigate('instructors')}>
+            <i className="ti ti-user-plus" /> Create faculty account
+          </button>
         </div>
       </div>
       <Notice type="info" icon="ti-shield-check">

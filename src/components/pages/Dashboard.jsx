@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ROLES } from '../../data/appData';
 import { EmptyState, LogEntry, Notice } from '../Shared';
 
-export default function Dashboard({ students, logs, blocks, gradeSheets = [], facultyRecords = [], onClearStudents }) {
+export default function Dashboard({ students, logs, blocks, auditLogs = [], gradeSheets = [], facultyRecords = [], onClearStudents }) {
   const [selectedInstructor, setSelectedInstructor] = useState('');
   const onChain = blocks.reduce((sum, block) => sum + (block.count || 0), 0);
   const pendingUploads = gradeSheets.filter(sheet => sheet.status !== 'Submitted').length;
@@ -10,24 +10,58 @@ export default function Dashboard({ students, logs, blocks, gradeSheets = [], fa
   const periodicalSaves = logs.filter(entry => String(entry.desc || '').toLowerCase().includes('saved')).length;
   const blockchainCommits = blocks.length;
 
-  const formatInstructorName = (id, profileName) => {
-    if (profileName) return profileName;
-    if (ROLES[id]?.name) return ROLES[id].name;
-    if (String(id || '').includes('@')) return 'Instructor';
-    return id || 'Instructor';
+  const formatTime = (time) => {
+    if (!time) return '—';
+    const date = new Date(time);
+    if (Number.isNaN(date.getTime())) return time;
+    return date.toLocaleString('en-PH', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const instructorOptions = useMemo(() => {
     const fromLogs = logs.map(entry => entry.prof).filter(Boolean);
     const fromBlocks = blocks.map(block => block.prof).filter(Boolean);
     const fromFaculty = facultyRecords.map(record => record.id).filter(Boolean);
-    return Array.from(new Set([...fromLogs, ...fromBlocks, ...fromFaculty]));
-  }, [logs, blocks, facultyRecords]);
+    const fromAudit = auditLogs.map(entry => entry.prof || entry.user).filter(Boolean);
+    return Array.from(new Set([...fromLogs, ...fromBlocks, ...fromFaculty, ...fromAudit]));
+  }, [logs, blocks, facultyRecords, auditLogs]);
 
   const activityLogs = useMemo(() => {
-    if (!selectedInstructor) return logs;
-    return logs.filter(entry => entry.prof === selectedInstructor);
-  }, [logs, selectedInstructor]);
+    const baseLogs = logs.map(entry => ({
+      ...entry,
+      actor: entry.prof,
+      displayTime: entry.time,
+    }));
+    const auditEntries = auditLogs.map(entry => ({
+      ...entry,
+      dot: entry.dot || 'b',
+      desc: entry.desc || `${entry.action || 'Activity'} recorded`,
+      actor: entry.prof || entry.user,
+      displayTime: formatTime(entry.time),
+    }));
+    const combined = [...baseLogs, ...auditEntries];
+    const parseDate = (value) => {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date;
+    };
+    const sorted = combined.sort((a, b) => {
+      const aDate = parseDate(a.time || a.displayTime);
+      const bDate = parseDate(b.time || b.displayTime);
+      if (aDate && bDate) return bDate - aDate;
+      if (aDate) return -1;
+      if (bDate) return 1;
+      return 0;
+    });
+    const filtered = selectedInstructor
+      ? sorted.filter(entry => entry.actor === selectedInstructor)
+      : sorted;
+    return filtered;
+  }, [logs, auditLogs, selectedInstructor]);
 
   const submissionRows = useMemo(() => {
     const map = new Map();
@@ -35,7 +69,7 @@ export default function Dashboard({ students, logs, blocks, gradeSheets = [], fa
       const profile = facultyRecords.find(record => record.id === id);
       map.set(id, {
         id,
-        name: formatInstructorName(id, profile?.name),
+        name: profile?.name || ROLES[id]?.name || id,
         dept: profile?.dept || ROLES[id]?.dept || '—',
         uploads: 0,
         lastActivity: null,
@@ -44,7 +78,7 @@ export default function Dashboard({ students, logs, blocks, gradeSheets = [], fa
     blocks.forEach(block => {
       const row = map.get(block.prof) || {
         id: block.prof,
-        name: formatInstructorName(block.prof),
+        name: ROLES[block.prof]?.name || block.prof,
         dept: ROLES[block.prof]?.dept || '—',
         uploads: 0,
         lastActivity: null,
@@ -161,7 +195,12 @@ export default function Dashboard({ students, logs, blocks, gradeSheets = [], fa
           </div>
           {activityLogs.length > 0 ? (
             activityLogs.slice(0, 6).map((l, i) => (
-              <LogEntry key={`${l.time}-${i}`} entry={l} />
+              <LogEntry
+                key={`${l.time || l.displayTime}-${i}`}
+                entry={{ ...l, time: l.displayTime || l.time }}
+                showActor
+                actorName={ROLES[l.actor]?.name || l.actor || '—'}
+              />
             ))
           ) : (
             <EmptyState icon="ti-activity">No activity logs yet.</EmptyState>

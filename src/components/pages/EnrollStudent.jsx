@@ -270,10 +270,6 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
     setManualStudent({ id: '', name: '', program: '' });
   }
 
-  function removeStagedStudent(indexToRemove) {
-    setStagedStudents(prev => prev.filter((_, index) => index !== indexToRemove));
-  }
-
   function openSubjectModal() {
     if (!stagedStudents.length) return;
     setShowModal(true);
@@ -436,7 +432,6 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
                   <th>Student ID</th>
                   <th>Name</th>
                   <th>Program</th>
-                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -445,16 +440,6 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
                     <td className="hash">{student.id || '—'}</td>
                     <td style={{ fontWeight: 500 }}>{student.name}</td>
                     <td>{student.program || '—'}</td>
-                    <td>
-                      <button
-                        className="btn sm"
-                        type="button"
-                        onClick={() => removeStagedStudent(index)}
-                        title="Remove student"
-                      >
-                        <i className="ti ti-trash" /> Remove
-                      </button>
-                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -40,4 +40,7 @@ export const supabase = isSupabaseConfigured
         insert: async () => ({ data: [], error: null }),
         upsert: async () => ({ data: [], error: null }),
       }),
+      functions: {
+        invoke: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+      },
     };

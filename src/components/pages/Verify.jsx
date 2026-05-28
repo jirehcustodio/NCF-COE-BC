@@ -6,6 +6,8 @@ export default function Verify({ students, blocks = [], curRole }) {
   const [studentId, setStudentId] = useState('NCF-2021-0042');
   const [subject,   setSubject]   = useState('CE 401');
   const [result,    setResult]    = useState(null);
+  const [blockQuery, setBlockQuery] = useState('');
+  const [blockResult, setBlockResult] = useState(null);
 
   function doVerify() {
     const s = students.find(st => st.id === studentId.trim());
@@ -24,6 +26,28 @@ export default function Verify({ students, blocks = [], curRole }) {
     } else {
       setResult({ type: 'warn', msg: 'No verified blockchain record found for this student/subject combination.' });
     }
+  }
+
+  function verifyBlock() {
+    const query = blockQuery.trim();
+    if (!query) {
+      setBlockResult({ type: 'err', msg: 'Enter a block number or hash to verify.' });
+      return;
+    }
+    const sorted = [...blocks].sort((a, b) => Number(a.num) - Number(b.num));
+    const found = sorted.find(block => String(block.num) === query || block.hash === query);
+    if (!found) {
+      setBlockResult({ type: 'warn', msg: 'No block found for that number/hash.' });
+      return;
+    }
+    const idx = sorted.findIndex(block => block.hash === found.hash && block.num === found.num);
+    const prev = idx > 0 ? sorted[idx - 1] : null;
+    const validPrev = idx === 0 ? found.prev === '0x0000...0000' : found.prev === prev?.hash;
+    if (!validPrev) {
+      setBlockResult({ type: 'err', msg: 'Block chain mismatch. Previous hash does not match.' , block: found, prev });
+      return;
+    }
+    setBlockResult({ type: 'suc', block: found, prev });
   }
 
   return (
@@ -74,6 +98,46 @@ export default function Verify({ students, blocks = [], curRole }) {
             {result.type === 'err' && (
               <div className="notice err">
                 <i className="ti ti-lock" /> {result.msg}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="card" style={{ maxWidth: 460, marginTop: 18 }}>
+        <div className="ch"><span className="ct">Verify transaction by block</span></div>
+        <div className="fg">
+          <label>Block number or hash</label>
+          <input
+            value={blockQuery}
+            onChange={event => setBlockQuery(event.target.value)}
+            placeholder="e.g. 1050 or 0x1a2b...3c4d"
+          />
+        </div>
+        <button className="btn pri" onClick={verifyBlock}>
+          <i className="ti ti-shield-check" /> Verify transaction
+        </button>
+
+        {blockResult && (
+          <div style={{ marginTop: 14 }}>
+            {blockResult.type === 'suc' && (
+              <div className="notice suc">
+                <i className="ti ti-shield-check" />
+                <div>
+                  <strong>Transaction verified — block is intact</strong><br />
+                  Block #{blockResult.block?.num} · {blockResult.block?.subj} · {blockResult.block?.period || '—'}<br />
+                  <HashDisplay label="Block Hash" value={blockResult.block?.hash} showCopy={false} />
+                  <HashDisplay label="Previous Hash" value={blockResult.block?.prev} showCopy={false} />
+                </div>
+              </div>
+            )}
+            {blockResult.type === 'warn' && (
+              <div className="notice warn">
+                <i className="ti ti-alert-circle" /> {blockResult.msg}
+              </div>
+            )}
+            {blockResult.type === 'err' && (
+              <div className="notice err">
+                <i className="ti ti-shield-x" /> {blockResult.msg}
               </div>
             )}
           </div>

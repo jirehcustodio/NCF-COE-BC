@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { EmptyState, Notice } from '../Shared';
 
-export default function Curriculum({ curriculumSubjects = [], onImportCurriculum }) {
+export default function Curriculum({ curriculumSubjects = [], onImportCurriculum, allowImport = true }) {
   const [program, setProgram] = useState('');
   const [importRows, setImportRows] = useState([]);
   const [importStatus, setImportStatus] = useState('idle');
@@ -116,10 +116,11 @@ export default function Curriculum({ curriculumSubjects = [], onImportCurriculum
     <>
       <div className="ph">
         <h2>Curriculum</h2>
-        <p>Manage curriculum subjects and import updates into the database.</p>
+        <p>View the curriculum catalog (requisite and prerequisite subjects).</p>
       </div>
 
-      <div className="card">
+      {allowImport && (
+        <div className="card">
         <div className="ch">
           <span className="ct">Curriculum / subjects</span>
           <select value={program} onChange={event => setProgram(event.target.value)}>
@@ -159,7 +160,8 @@ export default function Curriculum({ curriculumSubjects = [], onImportCurriculum
             </table>
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       <div className="card">
         <div className="ch">

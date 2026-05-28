@@ -29,6 +29,12 @@ export async function updateUserMetadata(payload) {
   return supabase.auth.updateUser({ data: payload });
 }
 
+export async function adminUpdateUserMetadata({ userId, email, metadata }) {
+  return supabase.functions.invoke('admin-update-user', {
+    body: { userId, email, metadata },
+  });
+}
+
 export async function fetchUserProfile(id) {
   return supabase.from('user_profiles').select('*').eq('id', id).maybeSingle();
 }

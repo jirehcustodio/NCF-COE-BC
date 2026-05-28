@@ -39,6 +39,7 @@ import {
   signOut,
   signUp,
   requestPasswordReset,
+  adminUpdateUserMetadata,
   updateUserMetadata,
   fetchUserProfile,
   upsertUserProfile,
@@ -64,6 +65,7 @@ import AllGrades    from './components/pages/AllGrades';
 import AllStudents  from './components/pages/AllStudents';
 import Ledger       from './components/pages/Ledger';
 import Verify       from './components/pages/Verify';
+import CommittedBlockchain from './components/pages/CommittedBlockchain';
 import Submissions  from './components/pages/Submissions';
 import Instructors  from './components/pages/Instructors';
 import FacultyRecords from './components/pages/FacultyRecords';
@@ -128,6 +130,7 @@ export default function App() {
   const [uploadSubject, setUploadSubject] = useState('');
   const [activeSubject, setActiveSubject] = useState('');
   const isActiveRef = useRef(true);
+  const loginRoleRef = useRef(null);
 
   const programOptions = useMemo(() => {
     const fromCurriculum = curriculumSubjects.map(subject => subject.program).filter(Boolean);
@@ -156,7 +159,7 @@ export default function App() {
   }
 
   function getDefaultPage(role) {
-    if (role === 'admin') return 'admindashboard';
+    if (role === 'admin') return 'dashboard';
     if (role === 'dean') return 'dashboard';
     return 'mystudents';
   }
@@ -241,23 +244,26 @@ export default function App() {
       });
   }
 
-  function logEnrollmentActivity(enrollmentLog) {
-    if (!enrollmentLog) return;
-    
-    // Save to both in-memory and localStorage
-    setAuditLogs(prev => [...prev, enrollmentLog]);
-    
+  function logAuditActivity(auditLog) {
+    if (!auditLog) return;
+
+    setAuditLogs(prev => [...prev, auditLog]);
+
     try {
       const stored = localStorage.getItem('auditLogs');
       const existing = stored ? JSON.parse(stored) : [];
-      const isDuplicate = existing.some(l => l.prof === enrollmentLog.prof && l.time === enrollmentLog.time && l.action === enrollmentLog.action);
+      const isDuplicate = existing.some(l => l.prof === auditLog.prof && l.time === auditLog.time && l.action === auditLog.action);
       if (!isDuplicate) {
-        existing.push(enrollmentLog);
+        existing.push(auditLog);
         localStorage.setItem('auditLogs', JSON.stringify(existing));
       }
     } catch (e) {
-      console.error('Failed to save enrollment log to localStorage:', e);
+      console.error('Failed to save audit log to localStorage:', e);
     }
+  }
+
+  function logEnrollmentActivity(enrollmentLog) {
+    logAuditActivity(enrollmentLog);
   }
   
   useEffect(() => {
@@ -292,17 +298,27 @@ export default function App() {
       }
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const sessionUser = session?.user || null;
-      setAuthUser(sessionUser);
       if (sessionUser) {
         const role = resolveRole(sessionUser.user_metadata?.role);
+        if (loginRoleRef.current && role !== loginRoleRef.current) {
+          await signOut();
+          loginRoleRef.current = null;
+          setAuthUser(null);
+          setShowLanding(true);
+          setAuthError(`This account is registered as ${role}. Please sign in using the ${role} role.`);
+          return;
+        }
+        loginRoleRef.current = null;
+        setAuthUser(sessionUser);
         setCurRole(role);
         setActivePage(getDefaultPage(role));
         setShowLanding(false);
         setShowOnboarding(shouldShowOnboarding(sessionUser, role));
         logDeviceLogin(sessionUser);
       } else {
+        setAuthUser(null);
         setShowLanding(true);
         setShowOnboarding(false);
       }
@@ -484,21 +500,33 @@ export default function App() {
     );
   }
 
-  async function handleLogin({ email, password }) {
+  async function handleLogin({ email, password, role: requestedRole }) {
     setAuthError('');
     setAuthLoading(true);
+    loginRoleRef.current = requestedRole || null;
     const { data, error } = await signInWithPassword({ email, password });
     setAuthLoading(false);
     if (error) {
+      loginRoleRef.current = null;
       setAuthError(formatAuthError(error));
       return;
     }
-    setAuthUser(data.user || null);
-    const role = resolveRole(data.user?.user_metadata?.role);
+    const user = data.user || null;
+    const role = resolveRole(user?.user_metadata?.role);
+    if (requestedRole && role !== requestedRole) {
+      await signOut();
+      loginRoleRef.current = null;
+      setAuthUser(null);
+      setShowLanding(true);
+      setAuthError(`This account is registered as ${role}. Please sign in using the ${role} role.`);
+      return;
+    }
+    loginRoleRef.current = null;
+    setAuthUser(user);
     setCurRole(role);
     setActivePage(getDefaultPage(role));
     setShowLanding(false);
-    setShowOnboarding(shouldShowOnboarding(data.user, role));
+    setShowOnboarding(shouldShowOnboarding(user, role));
   }
 
   async function handleCreateAccount({ email, password, role, name, program, status }) {
@@ -526,6 +554,17 @@ export default function App() {
         return [...prev, payload];
       });
     }
+    const actor = authUser?.email || authUser?.id || 'system';
+    logAuditActivity({
+      prof: actor,
+      user: actor,
+      userAgent: navigator.userAgent,
+      action: 'Account Created',
+      time: new Date().toISOString(),
+      desc: `Created ${role} account for ${email}`,
+      ipAddress: 'IP detection in audit trail',
+      device: 'Browser Session',
+    });
     if (data?.session?.user) {
       await signOut();
       setShowLanding(true);
@@ -533,6 +572,19 @@ export default function App() {
       return { warning: 'Account created, but the session switched. Please sign in again as admin.' };
     }
     return { ok: true };
+  }
+
+  async function handleUpdateInstructorRole({ email, role }) {
+    if (!email) return { error: 'Email is required.' };
+    if (!role) return { error: 'Role is required.' };
+    const { data, error } = await adminUpdateUserMetadata({
+      email,
+      metadata: { role },
+    });
+    if (error) {
+      return { error: error.message || 'Failed to update role.' };
+    }
+    return { ok: true, user: data?.user };
   }
 
   async function handleResetInstructorPassword(email) {
@@ -604,6 +656,16 @@ export default function App() {
       prof: profKey,
     };
     setLogs(prev => [newLog, ...prev]);
+    logAuditActivity({
+      prof: profKey,
+      user: profKey,
+      userAgent: navigator.userAgent,
+      action: 'Commit',
+      time: new Date().toISOString(),
+      desc: newLog.desc,
+      ipAddress: 'IP detection in audit trail',
+      device: 'Browser Session',
+    });
 
     const sheetKey = `${subjCode}-${period}`;
     setGradeSheets(prev => {
@@ -887,24 +949,26 @@ export default function App() {
     gradeSheets,
   };
   const canViewDean = isDean;
-  const canViewAdmin = isAdmin;
+  const canViewAdmin = isAdmin || isDean;
 
     switch (activePage) {
       // Dean pages
-      case 'admindashboard': return canViewAdmin ? (
+      case 'admindashboard': return isAdmin ? (
         <AdminDashboard
           facultyRecords={facultyRecords}
           blocks={blocks}
           logs={logs}
+          onNavigate={handleNavigate}
         />
       ) : (
         <AccessDenied message="Admin access required." />
       );
-      case 'dashboard':    return canViewDean ? (
+      case 'dashboard':    return (canViewDean || isAdmin) ? (
         <Dashboard
           {...props}
           facultyRecords={facultyRecords}
           gradeSheets={gradeSheets}
+          auditLogs={auditLogs}
           onClearStudents={handleClearStudents}
         />
       ) : (
@@ -923,6 +987,11 @@ export default function App() {
         <AccessDenied message="Dean access required." />
       );
       case 'ledger':       return canViewDean ? <Ledger {...props} /> : <MyChain {...props} />;
+      case 'commits':      return canViewDean ? (
+        <CommittedBlockchain blocks={blocks} facultyRecords={facultyRecords} />
+      ) : (
+        <AccessDenied message="Dean access required." />
+      );
       case 'verify':       return <Verify {...props} />;
       case 'submissions':  return canViewDean ? <Submissions {...props} /> : <MySubmissions {...props} />;
       case 'instructors':  return canViewAdmin ? (
@@ -936,6 +1005,7 @@ export default function App() {
           onDeleteInstructor={handleDeleteInstructor}
           onCreateInstructor={handleCreateAccount}
           onResetInstructorPassword={handleResetInstructorPassword}
+          onUpdateInstructorRole={handleUpdateInstructorRole}
           onToggleInstructorStatus={(row) => {
             const status = row.recordStatus === 'Inactive' ? 'Active' : 'Inactive';
             const payload = {
@@ -959,8 +1029,12 @@ export default function App() {
       case 'siasdocs':       return canViewDean
         ? <SiasDocs {...academicProps} />
         : <AccessDenied message="Dean access required." />;
-      case 'curriculum':     return canViewDean
-        ? <Curriculum curriculumSubjects={curriculumSubjects} onImportCurriculum={handleImportCurriculum} />
+      case 'curriculum':     return (canViewDean || isAdmin || ROLES[curRole]?.type === 'instructor')
+        ? <Curriculum
+            curriculumSubjects={curriculumSubjects}
+            onImportCurriculum={handleImportCurriculum}
+            allowImport={canViewDean || isAdmin}
+          />
         : <AccessDenied message="Dean access required." />;
       case 'periodical':     return canViewDean
         ? <PeriodicalGradeRecording {...props} profKey={profKey} isDeanView onSavePeriodicalGrades={handleSavePeriodicalGrades} />
@@ -1066,10 +1140,17 @@ export default function App() {
 
       default:
         if (canViewAdmin) {
-          return <AdminDashboard facultyRecords={facultyRecords} blocks={blocks} logs={logs} />;
+          return (
+            <AdminDashboard
+              facultyRecords={facultyRecords}
+              blocks={blocks}
+              logs={logs}
+              onNavigate={handleNavigate}
+            />
+          );
         }
         if (canViewDean) {
-          return <Dashboard {...props} facultyRecords={facultyRecords} gradeSheets={gradeSheets} onClearStudents={handleClearStudents} />;
+          return <Dashboard {...props} facultyRecords={facultyRecords} gradeSheets={gradeSheets} auditLogs={auditLogs} onClearStudents={handleClearStudents} />;
         }
         return <MyStudents {...props} onNavigate={handleNavigate} onDeleteStudent={handleDeleteStudent} allowDelete />;
     }
