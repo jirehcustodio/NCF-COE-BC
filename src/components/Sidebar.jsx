@@ -11,10 +11,8 @@ export default function Sidebar({
   avatarUrl,
   onOpenProfile,
   activePage,
-  onRoleChange,
   onNavigate,
   onLogout,
-  showRoleSwitcher = true,
 }) {
   const rd   = ROLES[curRole];
   const nav  = rd.type === 'admin' ? ADMIN_NAV : rd.type === 'dean' ? DEAN_NAV : PROF_NAV;
@@ -77,26 +75,6 @@ export default function Sidebar({
       ))}
 
       <div className="sb-footer">
-        {showRoleSwitcher && (
-          <div className="role-sw">
-            <div className="lbl">Switch account (prototype demo)</div>
-            <div className="role-btns">
-              {[
-                { key: 'dean',       label: 'Dean' },
-                { key: 'instructor', label: 'Instructor' },
-              ].map(r => (
-                <button
-                  key={r.key}
-                  className={`rb ${curRole === r.key ? 'active' : ''}`}
-                  onClick={() => onRoleChange(r.key)}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         <button className="sb-logout" onClick={onLogout}>
           <i className="ti ti-logout" />
           Log out

@@ -604,13 +604,6 @@ export default function App() {
     setAuthUser(null);
   }
 
-  /* ---- Role switching ---- */
-  function handleRoleChange(role) {
-    if (authUser) return;
-    setCurRole(role);
-    setActivePage(getDefaultPage(role));
-  }
-
   /* ---- Navigation ---- */
   function handleNavigate(page) {
     setActivePage(page);
@@ -1165,10 +1158,8 @@ export default function App() {
         avatarUrl={profileAvatar}
         onOpenProfile={() => setProfileModalOpen(true)}
         activePage={activePage}
-        onRoleChange={handleRoleChange}
         onNavigate={handleNavigate}
         onLogout={handleLogout}
-        showRoleSwitcher={isAdmin}
       />
       <div className="main">
         {renderPage()}
