@@ -190,11 +190,9 @@ export default function App() {
     // Track this user as logged in
     setLastLoggedInUser(user.email || user.id);
     
-    // Helper: Save audit log (both in-memory and localStorage)
+    // Helper: Save audit log to localStorage only
     const saveAuditLog = (log) => {
-      setAuditLogs(prev => [...prev, log]);
-      
-      // Also persist to localStorage for offline consistency
+      // Persist to localStorage (single source of truth)
       try {
         const stored = localStorage.getItem('auditLogs');
         const existing = stored ? JSON.parse(stored) : [];
@@ -971,7 +969,6 @@ export default function App() {
           {...props}
           facultyRecords={facultyRecords}
           gradeSheets={gradeSheets}
-          auditLogs={auditLogs}
           onClearStudents={handleClearStudents}
         />
       ) : (
