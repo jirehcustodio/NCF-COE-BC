@@ -2,8 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { EmptyState, HashDisplay } from '../Shared';
 import { ROLES } from '../../data/appData';
 
-export default function CommittedBlockchain({ blocks = [], facultyRecords = [] }) {
+export default function CommittedBlockchain({ blocks = [], facultyRecords = [], curRole }) {
   const [selectedInstructor, setSelectedInstructor] = useState('');
+  const rd = ROLES[curRole];
+  const isAdmin = rd?.type === 'admin';
+  const isDean = rd?.type === 'dean';
 
   const instructorOptions = useMemo(() => {
     const fromBlocks = blocks.map(block => block.prof).filter(Boolean);
@@ -28,7 +31,7 @@ export default function CommittedBlockchain({ blocks = [], facultyRecords = [] }
     <>
       <div className="ph">
         <h2>Committed blockchain</h2>
-        <p>Live record of all grade commits by instructors.</p>
+        <p>{isDean ? 'Live record of all grade commits by instructors.' : 'System-wide blockchain grade submission audit trail.'}</p>
       </div>
       <div className="card">
         <div className="search-row">

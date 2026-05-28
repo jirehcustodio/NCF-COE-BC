@@ -105,7 +105,6 @@ export default function App() {
   const [students,   setStudents]   = useState(INITIAL_STUDENTS);
   const [blocks,     setBlocks]     = useState(INITIAL_BLOCKS);
   const [logs,       setLogs]       = useState(INITIAL_LOGS);
-  const [auditLogs,  setAuditLogs]  = useState([]);
   const [nextBlock,  setNextBlock]  = useState(1049);
   const [modal,      setModal]      = useState(null);
   const [authUser,   setAuthUser]   = useState(null);
@@ -247,12 +246,16 @@ export default function App() {
   function logAuditActivity(auditLog) {
     if (!auditLog) return;
 
-    setAuditLogs(prev => [...prev, auditLog]);
-
     try {
       const stored = localStorage.getItem('auditLogs');
       const existing = stored ? JSON.parse(stored) : [];
-      const isDuplicate = existing.some(l => l.prof === auditLog.prof && l.time === auditLog.time && l.action === auditLog.action);
+      // Create a unique key for this log entry
+      const logKey = `${auditLog.prof}-${auditLog.action}-${auditLog.time}`;
+      // Check if this exact log already exists
+      const isDuplicate = existing.some(l => {
+        const existingKey = `${l.prof}-${l.action}-${l.time}`;
+        return existingKey === logKey;
+      });
       if (!isDuplicate) {
         existing.push(auditLog);
         localStorage.setItem('auditLogs', JSON.stringify(existing));
@@ -974,23 +977,23 @@ export default function App() {
       ) : (
         <AccessDenied message="Dean access required." />
       );
-  case 'allgrades':    return canViewDean ? <AllGrades {...props} facultyRecords={facultyRecords} blocks={blocks} /> : (
-        <AccessDenied message="Dean access required." />
+  case 'allgrades':    return (canViewDean || isAdmin) ? <AllGrades {...props} facultyRecords={facultyRecords} blocks={blocks} /> : (
+        <AccessDenied message="Admin/Dean access required." />
       );
-      case 'allstudents':  return canViewDean ? (
+      case 'allstudents':  return (canViewDean || isAdmin) ? (
         <AllStudents
           {...props}
           logs={logs}
           onDeleteStudent={handleDeleteStudent}
         />
       ) : (
-        <AccessDenied message="Dean access required." />
+        <AccessDenied message="Admin/Dean access required." />
       );
       case 'ledger':       return canViewDean ? <Ledger {...props} /> : <MyChain {...props} />;
-      case 'commits':      return canViewDean ? (
-        <CommittedBlockchain blocks={blocks} facultyRecords={facultyRecords} />
+      case 'commits':      return (canViewDean || isAdmin) ? (
+        <CommittedBlockchain blocks={blocks} facultyRecords={facultyRecords} curRole={curRole} />
       ) : (
-        <AccessDenied message="Dean access required." />
+        <AccessDenied message="Admin/Dean access required." />
       );
       case 'verify':       return <Verify {...props} />;
       case 'submissions':  return canViewDean ? <Submissions {...props} /> : <MySubmissions {...props} />;
@@ -1136,7 +1139,7 @@ export default function App() {
       );
   case 'mysubmissions': return <MySubmissions {...props} profKey={profKey} />;
   case 'mychain':       return <MyChain       {...props} profKey={profKey} />;
-  case 'activitylog':   return <ActivityLog logs={logs} auditLogs={auditLogs} setAuditLogs={setAuditLogs} curRole={curRole} profKey={profKey} />;
+  case 'activitylog':   return <ActivityLog logs={logs} curRole={curRole} profKey={profKey} />;
 
       default:
         if (canViewAdmin) {
@@ -1150,7 +1153,7 @@ export default function App() {
           );
         }
         if (canViewDean) {
-          return <Dashboard {...props} facultyRecords={facultyRecords} gradeSheets={gradeSheets} auditLogs={auditLogs} onClearStudents={handleClearStudents} />;
+          return <Dashboard {...props} facultyRecords={facultyRecords} gradeSheets={gradeSheets} onClearStudents={handleClearStudents} />;
         }
         return <MyStudents {...props} onNavigate={handleNavigate} onDeleteStudent={handleDeleteStudent} allowDelete />;
     }

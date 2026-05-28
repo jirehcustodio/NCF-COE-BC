@@ -38,18 +38,29 @@ export const ADMIN_NAV = [
     sec: 'Overview',
     items: [
       { id: 'dashboard', icon: 'ti-layout-dashboard', label: 'Dashboard' },
+      { id: 'allgrades',   icon: 'ti-table',             label: 'All Grade Records' },
+      { id: 'allstudents', icon: 'ti-users',              label: 'All Student Lists' },
+      { id: 'enroll',      icon: 'ti-user-plus',          label: 'Enroll a Student' },
     ],
   },
   {
     sec: 'User Management',
     items: [
       { id: 'instructors', icon: 'ti-user-check', label: 'Faculty Accounts (Create)' },
+      { id: 'facultyrecords', icon: 'ti-id-badge',       label: 'Faculty Records' },
     ],
   },
   {
     sec: 'Academics',
     items: [
-      { id: 'curriculum', icon: 'ti-book', label: 'Curriculum' },
+      { id: 'curriculum',     icon: 'ti-book',           label: 'Curriculum' },
+    ],
+  },
+  {
+    sec: 'Blockchain',
+    items: [
+      { id: 'commits', icon: 'ti-git-commit',  label: 'Committed Blockchain' },
+      { id: 'verify', icon: 'ti-shield-check', label: 'Verify Grade' },
     ],
   },
   {

@@ -1,9 +1,27 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ROLES } from '../../data/appData';
 import { EmptyState, LogEntry, Notice } from '../Shared';
 
-export default function Dashboard({ students, logs, blocks, auditLogs = [], gradeSheets = [], facultyRecords = [], onClearStudents }) {
+const loadAuditLogsFromStorage = () => {
+  try {
+    const stored = localStorage.getItem('auditLogs');
+    return stored ? JSON.parse(stored) : [];
+  } catch (e) {
+    console.error('Failed to load audit logs from storage:', e);
+    return [];
+  }
+};
+
+export default function Dashboard({ students, logs, blocks, gradeSheets = [], facultyRecords = [], onClearStudents }) {
   const [selectedInstructor, setSelectedInstructor] = useState('');
+  const [auditLogs, setAuditLogs] = useState(() => loadAuditLogsFromStorage());
+
+  // Reload audit logs from localStorage on mount
+  useEffect(() => {
+    const stored = loadAuditLogsFromStorage();
+    setAuditLogs(stored);
+  }, []);
+
   const onChain = blocks.reduce((sum, block) => sum + (block.count || 0), 0);
   const pendingUploads = gradeSheets.filter(sheet => sheet.status !== 'Submitted').length;
   const latestBlock = blocks.reduce((max, block) => Math.max(max, block.num || 0), 0);

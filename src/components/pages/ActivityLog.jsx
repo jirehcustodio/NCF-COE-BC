@@ -25,36 +25,27 @@ const saveAuditLogsToStorage = (logs) => {
   }
 };
 
-export default function ActivityLog({ logs = [], auditLogs = [], curRole, profKey, onEnrollmentLogged }) {
+export default function ActivityLog({ logs = [], curRole, profKey, onEnrollmentLogged }) {
   const activeProf = profKey || curRole;
   const rd = ROLES[curRole];
   const canViewAll = rd?.type === 'dean' || rd?.type === 'admin';
   const [selectedTab, setSelectedTab] = useState('submissions');
   const [deviceFilter, setDeviceFilter] = useState('all');
   const [accountFilter, setAccountFilter] = useState('all');
-  const [persistentAuditLogs, setPersistentAuditLogs] = useState(() => loadAuditLogsFromStorage());
+  const [auditLogs, setAuditLogs] = useState(() => loadAuditLogsFromStorage());
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 40;
 
-  // Sync persistent audit logs with localStorage whenever they change
+  // Load audit logs from localStorage on mount
   useEffect(() => {
-    saveAuditLogsToStorage(persistentAuditLogs);
-  }, [persistentAuditLogs]);
+    const stored = loadAuditLogsFromStorage();
+    setAuditLogs(stored);
+  }, []);
 
-  // Merge in-memory logs with persistent logs (avoid duplicates)
+  // Sort audit logs by time descending
   const combinedAuditLogs = useMemo(() => {
-    const combined = [...persistentAuditLogs];
-    const persistedIds = new Set(persistentAuditLogs.map(l => `${l.prof}-${l.time}-${l.action}`));
-    
-    (auditLogs || []).forEach(log => {
-      const logId = `${log.prof}-${log.time}-${log.action}`;
-      if (!persistedIds.has(logId)) {
-        combined.push(log);
-      }
-    });
-
-    return combined.sort((a, b) => new Date(b.time) - new Date(a.time));
-  }, [auditLogs, persistentAuditLogs]);
+    return (auditLogs || []).sort((a, b) => new Date(b.time) - new Date(a.time));
+  }, [auditLogs]);
 
   // Filter activity logs for current user
   const myLogs = useMemo(() => {
