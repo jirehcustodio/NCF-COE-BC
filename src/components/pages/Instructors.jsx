@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Notice } from '../Shared';
+import CustomModal from '../CustomModal';
 
 export default function Instructors({
   instructors = [],
@@ -26,6 +27,10 @@ export default function Instructors({
   const [formPassword, setFormPassword] = useState('');
   const [formStatus, setFormStatus] = useState('Active');
   const [formMessage, setFormMessage] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [roleModalInstructor, setRoleModalInstructor] = useState(null);
+  const [selectedRoleForChange, setSelectedRoleForChange] = useState('instructor');
   const rows = instructors.length ? instructors : facultyRecords;
   const facultyById = useMemo(() => {
     const map = new Map();
@@ -124,34 +129,39 @@ export default function Instructors({
       setFormMessage(result.error);
       return;
     }
-      if (result?.warning) {
-        setFormMessage(result.warning);
-      } else {
-        setFormMessage('Account created with the provided password.');
-      }
+    // Show success modal
+    setShowSuccessModal(true);
+    // Clear form
     setFormEmail('');
     setFormPassword('');
     setFormName('');
     setFormProgram('');
     setFormRole('instructor');
     setFormStatus('Active');
+    setFormMessage('');
   }
 
   async function handleUpdateRole(row) {
     if (!onUpdateInstructorRole) return;
-    const suggested = row?.role || 'instructor';
-    const nextRole = window.prompt('Enter role (admin, dean, instructor):', suggested);
-    if (!nextRole) return;
-    const normalized = nextRole.trim().toLowerCase();
+    setRoleModalInstructor(row);
+    setSelectedRoleForChange(row?.role || 'instructor');
+    setShowRoleModal(true);
+  }
+
+  async function confirmRoleChange() {
+    if (!onUpdateInstructorRole || !roleModalInstructor) return;
+    const normalized = selectedRoleForChange.trim().toLowerCase();
     if (!['admin', 'dean', 'instructor'].includes(normalized)) {
       setFormMessage('Invalid role. Use admin, dean, or instructor.');
       return;
     }
-    const result = await onUpdateInstructorRole({ email: row.id, role: normalized });
+    const result = await onUpdateInstructorRole({ email: roleModalInstructor.id, role: normalized });
     if (result?.error) {
       setFormMessage(result.error);
     } else {
+      setShowRoleModal(false);
       setFormMessage(`Role updated to ${normalized}.`);
+      setRoleModalInstructor(null);
     }
   }
 
@@ -207,9 +217,6 @@ export default function Instructors({
             </button>
             {formMessage && <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{formMessage}</span>}
           </div>
-          <Notice type="info" icon="ti-info-circle">
-            Accounts are created via Supabase Auth. If email confirmations are enabled, the user must confirm before signing in.
-          </Notice>
         </div>
       )}
       <div className="card">
@@ -324,6 +331,75 @@ export default function Instructors({
           </div>
         </div>
       </div>
+
+      {/* Success Modal */}
+      <CustomModal
+        isOpen={showSuccessModal}
+        title="✓ Account Created"
+        icon="ti-check-circle"
+        size="small"
+        actions={[
+          {
+            label: 'Close',
+            onClick: () => setShowSuccessModal(false),
+            variant: 'primary',
+          },
+        ]}
+        onClose={() => setShowSuccessModal(false)}
+      >
+        <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
+          <p>Faculty account has been created successfully via Postgres.</p>
+          <p><strong>Email:</strong> {formEmail || '—'}</p>
+          <p><strong>Role:</strong> {formRole}</p>
+          <p style={{ marginTop: 12, fontSize: 12, color: 'var(--text-3)' }}>
+            The user can now sign in with their email and password.
+          </p>
+        </div>
+      </CustomModal>
+
+      {/* Role Change Modal */}
+      <CustomModal
+        isOpen={showRoleModal}
+        title="Change User Role"
+        icon="ti-user-shield"
+        size="small"
+        actions={[
+          {
+            label: 'Cancel',
+            onClick: () => setShowRoleModal(false),
+            variant: 'secondary',
+          },
+          {
+            label: 'Update Role',
+            onClick: confirmRoleChange,
+            variant: 'primary',
+          },
+        ]}
+        onClose={() => setShowRoleModal(false)}
+      >
+        <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
+          <p style={{ marginBottom: 12 }}>
+            <strong>User:</strong> {roleModalInstructor?.name || roleModalInstructor?.email || '—'}
+          </p>
+          <div className="fg" style={{ marginBottom: 0 }}>
+            <label>Select new role</label>
+            <select
+              value={selectedRoleForChange}
+              onChange={event => setSelectedRoleForChange(event.target.value)}
+              style={{ width: '100%' }}
+            >
+              <option value="instructor">Instructor</option>
+              <option value="dean">Dean</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          {formMessage && (
+            <p style={{ marginTop: 12, fontSize: 12, color: 'var(--red)', fontWeight: 500 }}>
+              ⚠ {formMessage}
+            </p>
+          )}
+        </div>
+      </CustomModal>
     </>
   );
 }
