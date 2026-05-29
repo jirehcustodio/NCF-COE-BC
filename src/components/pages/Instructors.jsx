@@ -31,6 +31,9 @@ export default function Instructors({
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [roleModalInstructor, setRoleModalInstructor] = useState(null);
   const [selectedRoleForChange, setSelectedRoleForChange] = useState('instructor');
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetInstructor, setResetInstructor] = useState(null);
+  const [resetLoading, setResetLoading] = useState(false);
   const rows = instructors.length ? instructors : facultyRecords;
   const facultyById = useMemo(() => {
     const map = new Map();
@@ -165,6 +168,31 @@ export default function Instructors({
     }
   }
 
+  async function handleResetPassword(instructor) {
+    setResetInstructor(instructor);
+    setShowResetModal(true);
+  }
+
+  async function confirmResetPassword() {
+    if (!onResetInstructorPassword || !resetInstructor) return;
+    setResetLoading(true);
+    try {
+      const result = await onResetInstructorPassword(resetInstructor.id);
+      if (result?.error) {
+        setFormMessage(result.error);
+      } else {
+        setFormMessage(`Password reset email sent to ${resetInstructor.id}`);
+        setShowResetModal(false);
+        setResetInstructor(null);
+      }
+    } catch (err) {
+      setFormMessage('Error sending reset email. Please try again.');
+      console.error('Reset password error:', err);
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
   return (
     <>
       <div className="ph">
@@ -276,15 +304,7 @@ export default function Instructors({
                       {allowCreate && (
                         <button
                           className="btn sm"
-                          onClick={async () => {
-                            if (!onResetInstructorPassword) return;
-                            const result = await onResetInstructorPassword(r.id);
-                            if (result?.error) {
-                              setFormMessage(result.error);
-                            } else {
-                              setFormMessage('Password reset email sent.');
-                            }
-                          }}
+                          onClick={() => handleResetPassword(r)}
                         >
                           <i className="ti ti-mail" /> Reset password
                         </button>
@@ -393,6 +413,46 @@ export default function Instructors({
               <option value="admin">Admin</option>
             </select>
           </div>
+          {formMessage && (
+            <p style={{ marginTop: 12, fontSize: 12, color: 'var(--red)', fontWeight: 500 }}>
+              ⚠ {formMessage}
+            </p>
+          )}
+        </div>
+      </CustomModal>
+
+      {/* Reset Password Modal */}
+      <CustomModal
+        isOpen={showResetModal}
+        title="Reset Password"
+        icon="ti-password"
+        size="small"
+        actions={[
+          {
+            label: 'Cancel',
+            onClick: () => setShowResetModal(false),
+            variant: 'secondary',
+            disabled: resetLoading,
+          },
+          {
+            label: resetLoading ? 'Sending...' : 'Send Reset Email',
+            onClick: confirmResetPassword,
+            variant: 'primary',
+            disabled: resetLoading,
+          },
+        ]}
+        onClose={() => !resetLoading && setShowResetModal(false)}
+      >
+        <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
+          <p style={{ marginBottom: 12 }}>
+            <strong>User:</strong> {resetInstructor?.name || resetInstructor?.email || '—'}
+          </p>
+          <p style={{ marginBottom: 12, fontSize: 12 }}>
+            A password reset email will be sent to <strong>{resetInstructor?.id || '—'}</strong>
+          </p>
+          <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '12px 0 0' }}>
+            The user will receive an email with instructions to reset their password. This is wired to Supabase Auth.
+          </p>
           {formMessage && (
             <p style={{ marginTop: 12, fontSize: 12, color: 'var(--red)', fontWeight: 500 }}>
               ⚠ {formMessage}
