@@ -873,7 +873,7 @@ export default function App() {
     }
   }
 
-  function handleSavePeriodicalGrades({ periodKey, updates }) {
+  async function handleSavePeriodicalGrades({ periodKey, updates }) {
     if (!periodKey || !updates?.length) return;
     const now = new Date().toISOString();
     const nowLabel = nowStr();
@@ -921,6 +921,18 @@ export default function App() {
         });
       });
       insertLog(newLog);
+
+      // Refresh grade sheets for dean to see updated status
+      if (isActiveRef.current && (ROLES[curRole]?.type === 'dean' || ROLES[curRole]?.type === 'admin')) {
+        try {
+          const { data: refreshedSheets } = await fetchGradeSheets();
+          if (refreshedSheets && isActiveRef.current) {
+            setGradeSheets(Array.isArray(refreshedSheets) ? refreshedSheets : []);
+          }
+        } catch (err) {
+          console.warn('Failed to refresh grade sheets:', err);
+        }
+      }
     }
     return nowLabel;
   }
