@@ -120,6 +120,12 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
 
   const showReview = gradeStatus === 'done';
 
+  // Get students for the selected subject only
+  const subjectStudents = useMemo(() => {
+    if (!subject) return [];
+    return myStudents.filter(s => s.subj === subject);
+  }, [myStudents, subject]);
+
   const subjectOptions = useMemo(() => {
     const fromStudents = myStudents.map(s => s.subj).filter(Boolean);
     const fromSubjects = (subjects || []).map(s => (typeof s === 'string' ? s : s.code)).filter(Boolean);
@@ -488,10 +494,10 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
         setParseWarnings(prev => [...prev, `⚠️ Large file detected (${rows.length} rows). Processing may take a moment...`]);
       }
 
-      const { map, count, meta } = rowsToGradeMap(rows, { students: myStudents, period });
+      const { map, count, meta } = rowsToGradeMap(rows, { students: subjectStudents, period });
       const template = detectTemplate(meta?.headerNormalized);
       const init = {};
-      myStudents.forEach(s => {
+      subjectStudents.forEach(s => {
         const existing = map[s.id] || {};
         init[s.id] = {
           prelim: existing.prelim ?? s.prelim ?? null,
@@ -501,7 +507,7 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
         };
       });
 
-      const missing = myStudents.filter(s => {
+      const missing = subjectStudents.filter(s => {
         const field = period.toLowerCase().replace('-', '');
         const grade = init[s.id]?.[field === 'semifinal' ? 'semi' : field];
         return grade === null || grade === undefined || grade === '';
@@ -797,7 +803,7 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
                       </tr>
                     </thead>
                     <tbody>
-                      {myStudents.map(s => (
+                      {subjectStudents.map(s => (
                         <tr key={s.id}>
                           <td className="hash">{s.id}</td>
                           <td style={{ fontWeight: 500 }}>{s.name}</td>

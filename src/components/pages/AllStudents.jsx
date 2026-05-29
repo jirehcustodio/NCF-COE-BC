@@ -120,7 +120,7 @@ export default function AllStudents({ students, logs = [], onDeleteStudent }) {
                     onChange={event => toggleSelectAll(event.target.checked)}
                   />
                 </th>
-                <th>Student ID</th><th>Name</th><th>Department</th>
+                <th>Student ID</th><th>Name</th>
                 <th>Subject</th><th>Instructor</th><th>Upload method</th><th>Status</th>
               </tr>
             </thead>
@@ -140,7 +140,6 @@ export default function AllStudents({ students, logs = [], onDeleteStudent }) {
                   </td>
                   <td className="hash">{s.id}</td>
                   <td style={{ fontWeight: 500 }}>{s.name}</td>
-                  <td style={{ fontSize: 11 }}>{s.dept}</td>
                   <td>{s.subj}</td>
                   <td style={{ fontSize: 11 }}>{ROLES[s.prof]?.name || s.prof}</td>
                   <td><UploadMethodBadge method={s.uploadMethod} /></td>
