@@ -34,6 +34,8 @@ export default function Instructors({
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetInstructor, setResetInstructor] = useState(null);
   const [resetLoading, setResetLoading] = useState(false);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetPasswordConfirm, setResetPasswordConfirm] = useState('');
   const rows = instructors.length ? instructors : facultyRecords;
   const facultyById = useMemo(() => {
     const map = new Map();
@@ -175,18 +177,31 @@ export default function Instructors({
 
   async function confirmResetPassword() {
     if (!onResetInstructorPassword || !resetInstructor) return;
+    
+    // Validate passwords
+    if (!resetPassword || resetPassword.length < 8) {
+      setFormMessage('Password must be at least 8 characters.');
+      return;
+    }
+    if (resetPassword !== resetPasswordConfirm) {
+      setFormMessage('Passwords do not match.');
+      return;
+    }
+
     setResetLoading(true);
     try {
-      const result = await onResetInstructorPassword(resetInstructor.id);
+      const result = await onResetInstructorPassword(resetInstructor.id, resetPassword);
       if (result?.error) {
         setFormMessage(result.error);
       } else {
-        setFormMessage(`Password reset email sent to ${resetInstructor.id}`);
+        setFormMessage(`Password updated for ${resetInstructor.id}`);
         setShowResetModal(false);
         setResetInstructor(null);
+        setResetPassword('');
+        setResetPasswordConfirm('');
       }
     } catch (err) {
-      setFormMessage('Error sending reset email. Please try again.');
+      setFormMessage('Error updating password. Please try again.');
       console.error('Reset password error:', err);
     } finally {
       setResetLoading(false);
@@ -430,15 +445,20 @@ export default function Instructors({
         actions={[
           {
             label: 'Cancel',
-            onClick: () => setShowResetModal(false),
+            onClick: () => {
+              setShowResetModal(false);
+              setResetPassword('');
+              setResetPasswordConfirm('');
+              setFormMessage('');
+            },
             variant: 'secondary',
             disabled: resetLoading,
           },
           {
-            label: resetLoading ? 'Sending...' : 'Send Reset Email',
+            label: resetLoading ? 'Updating...' : 'Update Password',
             onClick: confirmResetPassword,
             variant: 'primary',
-            disabled: resetLoading,
+            disabled: resetLoading || !resetPassword || !resetPasswordConfirm,
           },
         ]}
         onClose={() => !resetLoading && setShowResetModal(false)}
@@ -447,12 +467,56 @@ export default function Instructors({
           <p style={{ marginBottom: 12 }}>
             <strong>User:</strong> {resetInstructor?.name || resetInstructor?.email || '—'}
           </p>
-          <p style={{ marginBottom: 12, fontSize: 12 }}>
-            A password reset email will be sent to <strong>{resetInstructor?.id || '—'}</strong>
+          <p style={{ marginBottom: 16, fontSize: 12, color: 'var(--text-3)' }}>
+            Enter a new password below (minimum 8 characters).
           </p>
-          <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '12px 0 0' }}>
-            The user will receive an email with instructions to reset their password. This is wired to Supabase Auth.
-          </p>
+          
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500 }}>
+              New Password
+            </label>
+            <input
+              type="password"
+              value={resetPassword}
+              onChange={(e) => setResetPassword(e.target.value)}
+              placeholder="Min. 8 characters"
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                fontSize: 12,
+                border: '1px solid var(--border)',
+                borderRadius: 4,
+                backgroundColor: 'var(--surface)',
+                color: 'var(--text-1)',
+                boxSizing: 'border-box',
+              }}
+              disabled={resetLoading}
+            />
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500 }}>
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              value={resetPasswordConfirm}
+              onChange={(e) => setResetPasswordConfirm(e.target.value)}
+              placeholder="Confirm new password"
+              style={{
+                width: '100%',
+                padding: '8px 10px',
+                fontSize: 12,
+                border: '1px solid var(--border)',
+                borderRadius: 4,
+                backgroundColor: 'var(--surface)',
+                color: 'var(--text-1)',
+                boxSizing: 'border-box',
+              }}
+              disabled={resetLoading}
+            />
+          </div>
+
           {formMessage && (
             <p style={{ marginTop: 12, fontSize: 12, color: 'var(--red)', fontWeight: 500 }}>
               ⚠ {formMessage}

@@ -6,6 +6,7 @@ type UpdateRequest = {
   userId?: string;
   email?: string;
   metadata?: Record<string, unknown>;
+  password?: string;
 };
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -56,8 +57,10 @@ serve(async (req: Request) => {
   }
 
   const metadata = body.metadata ?? {};
-  if (!Object.keys(metadata).length) {
-    return jsonResponse({ error: 'metadata is required.' }, 400);
+  const password = body.password ?? '';
+  
+  if (!Object.keys(metadata).length && !password) {
+    return jsonResponse({ error: 'metadata or password is required.' }, 400);
   }
 
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -80,9 +83,15 @@ serve(async (req: Request) => {
     return jsonResponse({ error: 'userId or email is required.' }, 400);
   }
 
-  const { data: updated, error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
-    user_metadata: metadata,
-  });
+  const updatePayload: { user_metadata?: Record<string, unknown>; password?: string } = {};
+  if (Object.keys(metadata).length) {
+    updatePayload.user_metadata = metadata;
+  }
+  if (password) {
+    updatePayload.password = password;
+  }
+
+  const { data: updated, error: updateError } = await adminClient.auth.admin.updateUserById(userId, updatePayload);
 
   if (updateError) {
     return jsonResponse({ error: updateError.message || 'Failed to update user.' }, 500);

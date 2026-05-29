@@ -35,6 +35,12 @@ export async function adminUpdateUserMetadata({ userId, email, metadata }) {
   });
 }
 
+export async function adminUpdateUserPassword({ email, password }) {
+  return supabase.functions.invoke('admin-update-user', {
+    body: { email, password },
+  });
+}
+
 export async function fetchUserProfile(id) {
   return supabase.from('user_profiles').select('*').eq('id', id).maybeSingle();
 }

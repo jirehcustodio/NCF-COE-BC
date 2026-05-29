@@ -40,6 +40,7 @@ import {
   signUp,
   requestPasswordReset,
   adminUpdateUserMetadata,
+  adminUpdateUserPassword,
   updateUserMetadata,
   fetchUserProfile,
   upsertUserProfile,
@@ -588,11 +589,14 @@ export default function App() {
     return { ok: true, user: data?.user };
   }
 
-  async function handleResetInstructorPassword(email) {
+  async function handleResetInstructorPassword(email, newPassword) {
     if (!email) return { error: 'Email is required.' };
-    const { error } = await requestPasswordReset(email);
+    if (!newPassword || newPassword.length < 8) {
+      return { error: 'Password must be at least 8 characters.' };
+    }
+    const { error } = await adminUpdateUserPassword({ email, password: newPassword });
     if (error) {
-      return { error: error.message || 'Failed to send reset email.' };
+      return { error: error.message || 'Failed to update password.' };
     }
     return { ok: true };
   }
