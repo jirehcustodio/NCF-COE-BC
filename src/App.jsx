@@ -716,10 +716,22 @@ export default function App() {
         console.error('Failed to persist blockchain commit:', error);
         throw error;
       }
+
+      // Refresh logs for dean/admin to see the latest commits
+      if (isActiveRef.current && (ROLES[curRole]?.type === 'dean' || ROLES[curRole]?.type === 'admin')) {
+        try {
+          const { data: refreshedLogs } = await fetchLogs();
+          if (refreshedLogs && isActiveRef.current) {
+            setLogs(Array.isArray(refreshedLogs) ? refreshedLogs : []);
+          }
+        } catch (err) {
+          console.warn('Failed to refresh logs:', err);
+        }
+      }
     }
   }
 
-  function handleEnroll({ students: studentsToEnroll, subject }) {
+  async function handleEnroll({ students: studentsToEnroll, subject }) {
     const prof = authUser?.email || curRole;
     const normalizeName = (value) => String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
     const subjectKey = String(subject || '').toLowerCase();
@@ -772,6 +784,18 @@ export default function App() {
           upload_method: 'Enrolled',
         });
       });
+
+      // Refresh students for dean/admin to see the latest enrollments
+      if (isActiveRef.current && (ROLES[curRole]?.type === 'dean' || ROLES[curRole]?.type === 'admin')) {
+        try {
+          const { data: refreshedStudents } = await fetchStudents();
+          if (refreshedStudents && isActiveRef.current) {
+            setStudents(Array.isArray(refreshedStudents) ? refreshedStudents : []);
+          }
+        } catch (err) {
+          console.warn('Failed to refresh students:', err);
+        }
+      }
     }
     return { added: uniqueStudents.length, skipped: studentsToEnroll.length - uniqueStudents.length };
   }
