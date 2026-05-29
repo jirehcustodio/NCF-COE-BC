@@ -5,6 +5,10 @@ import { Notice, StatusBadge, UploadMethodBadge } from '../Shared';
 export default function AllStudents({ students, logs = [], onDeleteStudent }) {
   const [query, setQuery] = useState('');
   const [prof,  setProf]  = useState('');
+  const [subject, setSubject] = useState('');
+  const [status, setStatus] = useState('');
+  const [uploadMethod, setUploadMethod] = useState('');
+  const [sortBy, setSortBy] = useState('name'); // 'name', 'id', 'subject', 'instructor'
   const [selectedRow, setSelectedRow] = useState(null);
   const [selectedRows, setSelectedRows] = useState({});
   const [menuState, setMenuState] = useState({ open: false, x: 0, y: 0, student: null });
@@ -19,13 +23,50 @@ export default function AllStudents({ students, logs = [], onDeleteStudent }) {
     }));
   }, [students]);
 
-  const filtered = students.filter(s => {
-    const name = (s.name || '').toLowerCase();
-    const id = (s.id || '').toLowerCase();
-    const matchesQuery = !query || name.includes(query.toLowerCase()) || id.includes(query.toLowerCase());
-    const matchesProf = !prof || s.prof === prof;
-    return matchesQuery && matchesProf;
-  });
+  const subjectOptions = useMemo(() => {
+    const unique = Array.from(new Set(students.map(s => s.subj).filter(Boolean)));
+    return unique.sort();
+  }, [students]);
+
+  const statusOptions = useMemo(() => {
+    const unique = Array.from(new Set(students.map(s => s.status).filter(Boolean)));
+    return unique.sort();
+  }, [students]);
+
+  const uploadMethodOptions = useMemo(() => {
+    const unique = Array.from(new Set(students.map(s => s.uploadMethod).filter(Boolean)));
+    return unique.sort();
+  }, [students]);
+
+  const filtered = useMemo(() => {
+    let result = students.filter(s => {
+      const name = (s.name || '').toLowerCase();
+      const id = (s.id || '').toLowerCase();
+      const matchesQuery = !query || name.includes(query.toLowerCase()) || id.includes(query.toLowerCase());
+      const matchesProf = !prof || s.prof === prof;
+      const matchesSubject = !subject || s.subj === subject;
+      const matchesStatus = !status || s.status === status;
+      const matchesUploadMethod = !uploadMethod || s.uploadMethod === uploadMethod;
+      return matchesQuery && matchesProf && matchesSubject && matchesStatus && matchesUploadMethod;
+    });
+
+    // Sort results
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'id':
+          return (a.id || '').localeCompare(b.id || '');
+        case 'subject':
+          return (a.subj || '').localeCompare(b.subj || '') || (a.name || '').localeCompare(b.name || '');
+        case 'instructor':
+          return (a.prof || '').localeCompare(b.prof || '') || (a.name || '').localeCompare(b.name || '');
+        case 'name':
+        default:
+          return (a.name || '').localeCompare(b.name || '');
+      }
+    });
+
+    return result;
+  }, [students, query, prof, subject, status, uploadMethod, sortBy]);
 
   const filteredLogs = useMemo(() => {
     if (!menuState.student) return [];
@@ -97,16 +138,68 @@ export default function AllStudents({ students, logs = [], onDeleteStudent }) {
       </div>
       <div className="card">
         <div className="ch">
-          <span className="ct">Complete student roster ({students.length} total)</span>
+          <span className="ct">Complete student roster ({students.length} total, {filtered.length} displayed)</span>
         </div>
-        <div className="search-row">
-          <input placeholder="Search name or ID..." value={query} onChange={e => setQuery(e.target.value)} />
-          <select value={prof} onChange={e => setProf(e.target.value)}>
-            <option value="">All instructors</option>
-            {instructorOptions.map(option => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
+        <div style={{ padding: '12px 16px', backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+          <div className="search-row" style={{ marginBottom: 12 }}>
+            <input placeholder="Search name or ID..." value={query} onChange={e => setQuery(e.target.value)} />
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)} title="Sort by">
+              <option value="name">Sort: Name</option>
+              <option value="id">Sort: ID</option>
+              <option value="subject">Sort: Subject</option>
+              <option value="instructor">Sort: Instructor</option>
+            </select>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8 }}>
+            <select value={prof} onChange={e => setProf(e.target.value)} title="Filter by instructor">
+              <option value="">All instructors</option>
+              {instructorOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            <select value={subject} onChange={e => setSubject(e.target.value)} title="Filter by subject">
+              <option value="">All subjects</option>
+              {subjectOptions.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <select value={status} onChange={e => setStatus(e.target.value)} title="Filter by status">
+              <option value="">All statuses</option>
+              {statusOptions.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <select value={uploadMethod} onChange={e => setUploadMethod(e.target.value)} title="Filter by upload method">
+              <option value="">All upload methods</option>
+              {uploadMethodOptions.map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+          {(query || prof || subject || status || uploadMethod) && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery('');
+                setProf('');
+                setSubject('');
+                setStatus('');
+                setUploadMethod('');
+              }}
+              style={{
+                marginTop: 12,
+                padding: '6px 12px',
+                fontSize: 12,
+                backgroundColor: 'var(--border)',
+                border: '1px solid var(--border)',
+                borderRadius: 4,
+                cursor: 'pointer',
+                color: 'var(--text-1)',
+              }}
+            >
+              Clear filters
+            </button>
+          )}
         </div>
         <div className="tbl-wrap">
           <table>
