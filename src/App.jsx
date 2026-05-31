@@ -388,6 +388,16 @@ export default function App() {
         setSubjects(subjectsData.filter(row => row.prof === instructorKey));
       }
 
+      // Calculate next block number from highest existing block
+      // This ensures block numbers always increment correctly and persist on refresh
+      if (blocksData && blocksData.length > 0) {
+        const blockNumbers = blocksData.map(b => Number(b.num) || 0).filter(n => n > 0);
+        const maxBlockNum = Math.max(...blockNumbers);
+        setNextBlock(maxBlockNum + 1);
+      } else {
+        setNextBlock(1);
+      }
+
   const fallback = (data) => (Array.isArray(data) ? data : []);
   const facultyData = fallback(facultyRes.data);
   const instructorData = fallback(instructorsRes.data);
@@ -443,6 +453,13 @@ export default function App() {
             setStudents(studentsData);
             setBlocks(blocksData);
             setLogs(logsData);
+
+            // Recalculate nextBlock from latest blocks
+            if (blocksData && blocksData.length > 0) {
+              const blockNumbers = blocksData.map(b => Number(b.num) || 0).filter(n => n > 0);
+              const maxBlockNum = Math.max(...blockNumbers);
+              setNextBlock(maxBlockNum + 1);
+            }
           } catch (err) {
             console.warn('Auto-refresh failed:', err);
           }
@@ -769,7 +786,16 @@ export default function App() {
         // Refresh blocks from database to ensure they're persisted
         const { data: refreshedBlocks } = await fetchBlocks();
         if (refreshedBlocks && isActiveRef.current) {
-          setBlocks(Array.isArray(refreshedBlocks) ? refreshedBlocks : []);
+          const blocksArray = Array.isArray(refreshedBlocks) ? refreshedBlocks : [];
+          setBlocks(blocksArray);
+          
+          // Recalculate nextBlock from refreshed blocks
+          // This ensures block numbers are always consistent with database
+          if (blocksArray.length > 0) {
+            const blockNumbers = blocksArray.map(b => Number(b.num) || 0).filter(n => n > 0);
+            const maxBlockNum = Math.max(...blockNumbers);
+            setNextBlock(maxBlockNum + 1);
+          }
         }
 
         // Refresh students to show committed grades in My Students list
