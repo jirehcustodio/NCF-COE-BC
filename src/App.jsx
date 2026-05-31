@@ -620,7 +620,12 @@ export default function App() {
     const now     = nowStr();
     const profKey = authUser?.email || curRole;
     const subjCode = subject.split('–')[0].trim();
-    const myS     = students.filter(s => s.prof === profKey && s.subj === subjCode);
+    
+    // Count students with actual grades being committed
+    const gradeEntries = Object.entries(gradeValues).filter(([id, vals]) => {
+      return vals && (vals.prelim !== null || vals.midterm !== null || vals.semi !== null || vals.final !== null);
+    });
+    const gradesCount = gradeEntries.length;
 
     // Update student grades and statuses
     setStudents(prev => prev.map(s => {
@@ -638,19 +643,19 @@ export default function App() {
       };
     }));
 
-    // Add new block
+    // Add new block with correct count of students with grades
     const newBlock = {
       num: nextBlock, hash,
-      prev: blocks[blocks.length - 1]?.hash || '0x0000...0000',
+      prev: blocks.length > 0 ? blocks[blocks.length - 1]?.hash : '0x0000...0000',
       time: now, prof: profKey,
-      subj: subjCode, period, count: myS.length,
+      subj: subjCode, period, count: gradesCount,
     };
     setBlocks(prev => [...prev, newBlock]);
 
     // Add log entry
     const newLog = {
       time: now, dot: 'g',
-      desc: `${rd.name} committed ${subjCode} ${period} grades (${myS.length} students) — Block #${nextBlock}`,
+      desc: `${rd.name} committed ${subjCode} ${period} grades (${gradesCount} students) — Block #${nextBlock}`,
       prof: profKey,
     };
     setLogs(prev => [newLog, ...prev]);
@@ -670,7 +675,7 @@ export default function App() {
       const exists = prev.find(sheet => `${sheet.subject}-${sheet.period}` === sheetKey);
       const updated = {
         subject: subjCode,
-        section: myS[0]?.section || 'TBA',
+        section: '—',
         period,
         lastUpdated: now,
         status: 'Submitted',
@@ -682,14 +687,16 @@ export default function App() {
     });
 
     // Show success modal
-    setModal({ num: nextBlock, hash, time: now, subj: subjCode, period, count: myS.length, by: rd.name });
+    setModal({ num: nextBlock, hash, time: now, subj: subjCode, period, count: gradesCount, by: rd.name });
     setNextBlock(n => n + 1);
 
     if (authUser) {
       try {
-        await Promise.all(myS.map(student => {
-          const vals = gradeValues[student.id];
+        // Update all students with their grades
+        await Promise.all(Object.entries(gradeValues).map(([studentId, vals]) => {
           if (!vals) return Promise.resolve();
+          const student = students.find(s => s.id === studentId && s.prof === authUser.email);
+          if (!student) return Promise.resolve();
           return upsertStudent({
             ...student,
             prof: authUser.email,
@@ -702,20 +709,35 @@ export default function App() {
           });
         }));
 
+        // Insert block
         const { error: blockError } = await insertBlock(newBlock);
         if (blockError) throw blockError;
 
+        // Insert log
         const { error: logError } = await insertLog(newLog);
         if (logError) throw logError;
 
+        // Upsert grade sheet
         const { error: sheetError } = await upsertGradeSheet({
           subject: subjCode,
-          section: myS[0]?.section || 'TBA',
+          section: '—',
           period,
           last_updated: now,
           status: 'Submitted',
         });
         if (sheetError) throw sheetError;
+
+        // Refresh blocks from database to ensure they're persisted
+        const { data: refreshedBlocks } = await fetchBlocks();
+        if (refreshedBlocks && isActiveRef.current) {
+          setBlocks(Array.isArray(refreshedBlocks) ? refreshedBlocks : []);
+        }
+
+        // Refresh students to show committed grades in My Students list
+        const { data: refreshedStudents } = await fetchStudents();
+        if (refreshedStudents && isActiveRef.current) {
+          setStudents(Array.isArray(refreshedStudents) ? refreshedStudents : []);
+        }
       } catch (error) {
         console.error('Failed to persist blockchain commit:', error);
         throw error;

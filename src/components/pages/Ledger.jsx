@@ -5,23 +5,27 @@ import { HashDisplay, Notice } from '../Shared';
 export default function Ledger({ blocks }) {
   const verificationMap = useMemo(() => {
     const map = new Map();
-    const byProf = new Map();
-    blocks.forEach(block => {
-      const key = block.prof || 'unknown';
-      if (!byProf.has(key)) byProf.set(key, []);
-      byProf.get(key).push(block);
+    
+    if (!blocks || blocks.length === 0) return map;
+    
+    // Sort blocks by number to maintain chain order
+    const sorted = [...blocks].sort((a, b) => Number(a.num) - Number(b.num));
+    
+    sorted.forEach((block, index) => {
+      let verified = false;
+      
+      if (index === 0) {
+        // First block should have prev as genesis hash
+        verified = block.prev === '0x0000...0000' || !block.prev;
+      } else {
+        // Check if previous hash matches the actual previous block's hash
+        const prevBlock = sorted[index - 1];
+        verified = block.prev === prevBlock.hash;
+      }
+      
+      map.set(`${block.num}-${block.hash}`, verified);
     });
-    byProf.forEach(list => {
-      const ordered = [...list].sort((a, b) => Number(a.num) - Number(b.num));
-      ordered.forEach((block, index) => {
-        if (index === 0) {
-          map.set(`${block.num}-${block.hash}`, true);
-          return;
-        }
-        const prev = ordered[index - 1];
-        map.set(`${block.num}-${block.hash}`, block.prev === prev.hash);
-      });
-    });
+    
     return map;
   }, [blocks]);
 

@@ -40,14 +40,25 @@ export default function Verify({ students, blocks = [], curRole }) {
       setBlockResult({ type: 'warn', msg: 'No block found for that number/hash.' });
       return;
     }
-    const idx = sorted.findIndex(block => block.hash === found.hash && block.num === found.num);
-    const prev = idx > 0 ? sorted[idx - 1] : null;
-    const validPrev = idx === 0 ? found.prev === '0x0000...0000' : found.prev === prev?.hash;
+    const idx = sorted.findIndex(block => block.num === found.num);
+    
+    // Verify previous hash
+    let validPrev = false;
+    if (idx === 0) {
+      // First block should have genesis prev hash
+      validPrev = found.prev === '0x0000...0000' || !found.prev;
+    } else {
+      // Check if prev hash matches the previous block's hash
+      const prevBlock = sorted[idx - 1];
+      validPrev = found.prev === prevBlock.hash;
+    }
+    
     if (!validPrev) {
-      setBlockResult({ type: 'err', msg: 'Block chain mismatch. Previous hash does not match.' , block: found, prev });
+      const prevBlock = idx > 0 ? sorted[idx - 1] : null;
+      setBlockResult({ type: 'err', msg: 'Block chain mismatch. Previous hash does not match.', block: found, prev: prevBlock });
       return;
     }
-    setBlockResult({ type: 'suc', block: found, prev });
+    setBlockResult({ type: 'suc', block: found, prev: idx > 0 ? sorted[idx - 1] : null });
   }
 
   return (
