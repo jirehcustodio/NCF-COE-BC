@@ -412,10 +412,49 @@ export default function App() {
   useEffect(() => {
     isActiveRef.current = true;
     loadData();
+    
+    // Auto-refresh for Admin/Dean users every 30 seconds to sync instructor submissions
+    let refreshInterval;
+    if (ROLES[curRole]?.type === 'dean' || ROLES[curRole]?.type === 'admin') {
+      refreshInterval = setInterval(async () => {
+        if (isActiveRef.current && authUser && !showLanding) {
+          try {
+            const [
+              studentsRes,
+              blocksRes,
+              logsRes,
+            ] = await Promise.all([
+              fetchStudents(),
+              fetchBlocks(),
+              fetchLogs(),
+            ]);
+
+            if (!isActiveRef.current) return;
+
+            const normalize = (items) => Array.isArray(items) ? items : [];
+            const studentsData = normalize(studentsRes.data).map(row => ({
+              ...row,
+              uploadMethod: row.uploadMethod ?? row.upload_method,
+            }));
+            const blocksData = normalize(blocksRes.data);
+            const logsData = normalize(logsRes.data);
+
+            // Update state with fresh data from database
+            setStudents(studentsData);
+            setBlocks(blocksData);
+            setLogs(logsData);
+          } catch (err) {
+            console.warn('Auto-refresh failed:', err);
+          }
+        }
+      }, 30000); // Refresh every 30 seconds
+    }
+
     return () => {
       isActiveRef.current = false;
+      if (refreshInterval) clearInterval(refreshInterval);
     };
-  }, [loadData]);
+  }, [loadData, authUser, curRole, showLanding]);
 
   useEffect(() => {
     if (!authUser || ROLES[curRole]?.type !== 'instructor') return;
