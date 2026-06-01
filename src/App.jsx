@@ -815,8 +815,9 @@ export default function App() {
           if (!vals) return Promise.resolve();
           const student = students.find(s => s.id === studentId && s.prof === authUser.email);
           if (!student) return Promise.resolve();
+          const { uploadMethod, ...studentData } = student;
           const res = await upsertStudent({
-            ...student,
+            ...studentData,
             prof: authUser.email,
             prelim: parseGrade(vals.prelim) ?? student.prelim,
             midterm: parseGrade(vals.midterm) ?? student.midterm,
