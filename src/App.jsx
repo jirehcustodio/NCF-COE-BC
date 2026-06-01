@@ -931,6 +931,24 @@ export default function App() {
     ]);
 
     if (authUser) {
+      // Ensure subject exists in subjects table (same as My Subjects tab)
+      if (!subjects.some(s => s.code === subject && s.prof === authUser.email)) {
+        const currSubject = curriculumSubjects.find(cs => cs.code === subject);
+        insertSubject({ 
+          code: subject, 
+          prof: authUser.email, 
+          title: currSubject?.title || '' 
+        });
+        // Add to local state to reflect immediately
+        setSubjects(prev => [...prev, { 
+          code: subject, 
+          prof: authUser.email, 
+          title: currSubject?.title || '',
+          year: currSubject?.year || '',
+          semester: currSubject?.semester || '',
+        }]);
+      }
+
       uniqueStudents.forEach(student => {
         upsertStudent({
           id: student.id,
