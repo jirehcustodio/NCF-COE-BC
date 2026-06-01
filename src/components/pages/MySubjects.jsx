@@ -56,25 +56,37 @@ export default function MySubjects({
     const map = new Map();
     myStudents.forEach(student => {
       const subject = student.subj || 'Unassigned';
-      const current = map.get(subject) || { subject, count: 0, code: subject, title: '' };
+      const current = map.get(subject) || { subject, count: 0, code: subject, title: '', year: '', semester: '' };
       map.set(subject, { ...current, count: current.count + 1 });
     });
     subjects.forEach(subject => {
       const code = subject.code || subject.subject;
       if (!code) return;
+      // Find curriculum subject for year/semester
+      const currSubject = curriculumSubjects.find(cs => cs.code === code);
       if (!map.has(code)) {
-        map.set(code, { subject: code, count: 0, code, title: subject.title || '', id: subject.id });
+        map.set(code, { 
+          subject: code, 
+          count: 0, 
+          code, 
+          title: subject.title || '', 
+          id: subject.id,
+          year: currSubject?.year || '',
+          semester: currSubject?.semester || '',
+        });
       } else {
         // Update with subject details if not already present
         const existing = map.get(code);
         if (!existing.title) {
           existing.title = subject.title || '';
           existing.id = subject.id;
+          existing.year = currSubject?.year || '';
+          existing.semester = currSubject?.semester || '';
         }
       }
     });
     return Array.from(map.values()).sort((a, b) => a.subject.localeCompare(b.subject));
-  }, [myStudents, subjects]);
+  }, [myStudents, subjects, curriculumSubjects]);
 
   const curriculumPrograms = useMemo(() => {
     const detected = curriculumSubjects.map(subject => subject.program).filter(Boolean);
@@ -161,9 +173,18 @@ export default function MySubjects({
           {subjectCards.map(subject => (
             <div className="card" key={subject.subject}>
               <div className="ch">
-                <div>
-                  <span className="ct">{subject.subject}</span>
-                  {subject.title && <p style={{ fontSize: 12, color: 'var(--text-2)', margin: '4px 0 0 0' }}>{subject.title}</p>}
+                <div style={{ flex: 1 }}>
+                  <span className="ct">{subject.title || subject.subject}</span>
+                  <p style={{ fontSize: 12, color: 'var(--text-2)', margin: '4px 0 0 0' }}>
+                    Code: {subject.subject}
+                  </p>
+                  {(subject.year || subject.semester) && (
+                    <p style={{ fontSize: 11, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                      {subject.year && <span>{subject.year} Year</span>}
+                      {subject.year && subject.semester && <span> • </span>}
+                      {subject.semester && <span>{subject.semester} Semester</span>}
+                    </p>
+                  )}
                 </div>
                 <span className="badge info"><i className="ti ti-users" /> {subject.count} students</span>
               </div>
