@@ -56,6 +56,7 @@ import Sidebar       from './components/Sidebar';
 import SuccessModal  from './components/SuccessModal';
 import { AccessDenied } from './components/Shared';
 import Landing       from './components/Landing';
+import Splash        from './components/Splash';
 import AdminDashboard from './components/pages/AdminDashboard';
 import Onboarding    from './components/Onboarding';
 import ProfileModal  from './components/ProfileModal';
@@ -123,6 +124,7 @@ export default function App() {
   const [allSubjects, setAllSubjects] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const isAdmin = ROLES[curRole]?.type === 'admin';
   const isDean = ROLES[curRole]?.type === 'dean';
   const onboardingKey = useMemo(() => (authUser?.id ? `onboarding_seen_${authUser.id}` : ''), [authUser?.id]);
@@ -147,10 +149,27 @@ export default function App() {
   const profileName = userProfile?.name || instructorProfile?.name || authUser?.email || ROLES[curRole]?.name;
   const profileAvatar = userProfile?.avatar_url || authUser?.user_metadata?.avatar_url || '';
 
+  function safeGetStorage(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (error) {
+      console.warn('Storage read blocked:', error);
+      return null;
+    }
+  }
+
+  function safeSetStorage(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (error) {
+      console.warn('Storage write blocked:', error);
+    }
+  }
+
   function shouldShowOnboarding(user, roleType) {
     if (!user?.id) return false;
     if (roleType && roleType !== 'instructor') return false;
-    return !localStorage.getItem(`onboarding_seen_${user.id}`);
+    return !safeGetStorage(`onboarding_seen_${user.id}`);
   }
 
   function resolveRole(role) {
@@ -186,7 +205,7 @@ export default function App() {
     const ua = navigator.userAgent || '';
     
     // Store user email for later use in other components
-    localStorage.setItem('currentUserEmail', user.email || user.id);
+  safeSetStorage('currentUserEmail', user.email || user.id);
     
     // Track this user as logged in
     setLastLoggedInUser(user.email || user.id);
@@ -214,7 +233,7 @@ export default function App() {
     };
     
     // Fetch client IP from a public API
-    fetch('https://api.ipify.org?format=json', { timeout: 5000 })
+    fetch('https://api.ipify.org?format=json')
       .then(res => res.json())
       .then(data => {
         const newAuditLog = {
@@ -239,6 +258,19 @@ export default function App() {
           device: 'Browser Session',
         };
         saveAuditLog(newAuditLog);
+      })
+      .catch(err => {
+        console.warn('Failed to fetch IP address:', err);
+        saveAuditLog({
+          prof: user.email || user.id,
+          user: user.email || user.id,
+          userAgent: ua,
+          action: 'Login',
+          time: new Date().toISOString(),
+          desc: `User ${user.email || user.id} logged in`,
+          ipAddress: 'IP unavailable',
+          device: 'Browser Session',
+        });
       });
   }
 
@@ -334,6 +366,8 @@ export default function App() {
 
   const loadData = useCallback(async () => {
     if (!authUser || showLanding) return;
+    setLoadError('');
+    try {
       const [
         studentsRes,
         blocksRes,
@@ -345,7 +379,7 @@ export default function App() {
         enrollmentRes,
         gradeSheetsRes,
         subjectsRes,
-          profileRes,
+        profileRes,
       ] = await Promise.all([
         fetchStudents(),
         fetchBlocks(),
@@ -357,12 +391,12 @@ export default function App() {
         fetchEnrollmentRecords(),
         fetchGradeSheets(),
         fetchSubjects(),
-          fetchUserProfile(authUser.email),
+        fetchUserProfile(authUser.email),
       ]);
 
-  if (!isActiveRef.current) return;
+      if (!isActiveRef.current) return;
       const instructorKey = authUser.email;
-  const roleType = ROLES[curRole]?.type;
+      const roleType = ROLES[curRole]?.type;
 
       const normalize = (items) => Array.isArray(items) ? items : [];
   const studentsData = normalize(studentsRes.data).map(row => ({
@@ -398,24 +432,28 @@ export default function App() {
         setNextBlock(1);
       }
 
-  const fallback = (data) => (Array.isArray(data) ? data : []);
-  const facultyData = fallback(facultyRes.data);
-  const instructorData = fallback(instructorsRes.data);
-  setInstructors(instructorData.length ? instructorData : facultyData);
-    setFacultyRecords(facultyData);
-    setTeachingLoads(fallback(loadsRes.data));
-    setCurriculumSubjects(fallback(curriculumRes.data));
-    setEnrollmentRecords(fallback(enrollmentRes.data));
-    setGradeSheets(fallback(gradeSheetsRes.data));
-  setUserProfile(profileRes?.data || null);
-    if (authUser && ROLES[curRole]?.type === 'instructor') {
-      const profile = facultyData.find(record => record.id === authUser.email);
-      if (profile?.status === 'Inactive') {
-        setAuthError('Your account is deactivated. Please contact the administrator.');
-        await handleLogout();
-        return;
+      const fallback = (data) => (Array.isArray(data) ? data : []);
+      const facultyData = fallback(facultyRes.data);
+      const instructorData = fallback(instructorsRes.data);
+      setInstructors(instructorData.length ? instructorData : facultyData);
+      setFacultyRecords(facultyData);
+      setTeachingLoads(fallback(loadsRes.data));
+      setCurriculumSubjects(fallback(curriculumRes.data));
+      setEnrollmentRecords(fallback(enrollmentRes.data));
+      setGradeSheets(fallback(gradeSheetsRes.data));
+      setUserProfile(profileRes?.data || null);
+      if (authUser && ROLES[curRole]?.type === 'instructor') {
+        const profile = facultyData.find(record => record.id === authUser.email);
+        if (profile?.status === 'Inactive') {
+          setAuthError('Your account is deactivated. Please contact the administrator.');
+          await handleLogout();
+          return;
+        }
+        if (!profile) setShowOnboarding(true);
       }
-      if (!profile) setShowOnboarding(true);
+    } catch (error) {
+      console.error('Failed to load initial data:', error);
+      setLoadError(error?.message || 'Failed to load data after login. Please try again.');
     }
   }, [authUser, curRole, showLanding]);
 
@@ -547,14 +585,33 @@ export default function App() {
           setProfileSaving(false);
         }}
         onFinish={() => {
-          if (onboardingKey) localStorage.setItem(onboardingKey, 'true');
+          if (onboardingKey) safeSetStorage(onboardingKey, 'true');
           setShowOnboarding(false);
         }}
         onSkip={() => {
-          if (onboardingKey) localStorage.setItem(onboardingKey, 'true');
+          if (onboardingKey) safeSetStorage(onboardingKey, 'true');
           setShowOnboarding(false);
         }}
       />
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="landing">
+        <div className="landing-card">
+          <div className="landing-brand">
+            <div className="landing-logo" style={{ backgroundImage: 'url(/logo.png)' }} />
+            <div className="landing-org">NCF · College of Engineering</div>
+            <div className="landing-title">Blockchain Grade Recording System</div>
+          </div>
+          <div className="landing-error">{loadError}</div>
+          <div className="landing-actions">
+            <button className="btn pri" onClick={handleRefresh}>Retry</button>
+            <button className="btn" onClick={handleLogout}>Sign out</button>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -1285,6 +1342,28 @@ export default function App() {
         }
         return <MyStudents {...props} onNavigate={handleNavigate} onDeleteStudent={handleDeleteStudent} allowDelete />;
     }
+  }
+
+  if (showSplash) {
+    return <Splash phase={splashPhase} />;
+  }
+
+  if (showLanding) {
+    return <Landing onNavigate={handleNavigate} onLoginSuccess={() => {}} />;
+  }
+
+  if (showOnboarding) {
+    return (
+      <Onboarding
+        role={curRole}
+        onComplete={() => {
+          if (onboardingKey) {
+            localStorage.setItem(onboardingKey, 'true');
+          }
+          setShowOnboarding(false);
+        }}
+      />
+    );
   }
 
   return (
