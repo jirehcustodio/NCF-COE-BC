@@ -5,8 +5,6 @@ import React from 'react';
 import { HashDisplay } from './Shared';
 
 export default function SuccessModal({ data, onClose, onViewLedger }) {
-  if (!data) return null;
-
   return (
     <div className={`modal-bg ${data ? 'open' : ''}`}>
       <div className="modal">
