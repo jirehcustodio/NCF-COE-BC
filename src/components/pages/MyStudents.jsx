@@ -2,23 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { ROLES } from '../../data/appData';
 import { StatusBadge, Notice } from '../Shared';
 
-export default function MyStudents({ students, curRole, profKey, program = '', subjects = [], onNavigate, onDeleteStudent, onRefresh, refreshing = false, allowDelete = false }) {
+export default function MyStudents({ students, curRole, profKey, program = '', subjects = [], curriculumSubjects = [], onNavigate, onDeleteStudent, onRefresh, refreshing = false, allowDelete = false }) {
   const activeProf = profKey || curRole;
   const myS = students.filter(s => s.prof === activeProf);
-  
-  // DEBUG: Log filtering details
-  React.useEffect(() => {
-    if (students.length > 0) {
-      console.log('DEBUG MyStudents filter:', {
-        activeProf,
-        profKey,
-        curRole,
-        totalStudents: students.length,
-        filteredStudents: myS.length,
-        sampleStudentProfs: students.slice(0, 3).map(s => ({ id: s.id, prof: s.prof })),
-      });
-    }
-  }, [students, activeProf]);
   const rd  = ROLES[curRole];
   const [showDelete, setShowDelete] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -36,6 +22,22 @@ export default function MyStudents({ students, curRole, profKey, program = '', s
     });
     return map;
   }, [subjects]);
+
+  const programMap = useMemo(() => {
+    const map = {};
+    curriculumSubjects.forEach(subject => {
+      const code = String(subject.code || '').trim().toLowerCase();
+      if (code && subject.program) {
+        map[code] = subject.program;
+      }
+    });
+    return map;
+  }, [curriculumSubjects]);
+
+  const getProgramForSubject = (subject) => {
+    const key = String(subject || '').trim().toLowerCase();
+    return programMap[key] || '';
+  };
 
   // Calculate average grade and determine pass/fail
   function calculateAverage(student) {
@@ -100,7 +102,7 @@ export default function MyStudents({ students, curRole, profKey, program = '', s
     <>
       <div className="ph">
         <h2>My student list</h2>
-        <p>{rd.name} · {program || 'Program not set'} — only your enrolled students are visible here</p>
+        <p>{rd.name} — only your enrolled students are visible here</p>
       </div>
       <Notice type="info" icon="ti-eye-off">
         Student records from other instructors are <strong>not visible</strong> to you.
@@ -176,8 +178,8 @@ export default function MyStudents({ students, curRole, profKey, program = '', s
                       {subjectMap[s.subj] || s.subj}
                     </td>
                     <td>
-                      {program || s.dept ? (
-                        <span className="badge info">{program || s.dept}</span>
+                      {getProgramForSubject(s.subj) ? (
+                        <span className="badge info">{getProgramForSubject(s.subj)}</span>
                       ) : '—'}
                     </td>
                     <td>{s.prelim  ?? '—'}</td>

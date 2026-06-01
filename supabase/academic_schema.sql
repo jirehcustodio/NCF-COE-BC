@@ -308,25 +308,25 @@ drop policy if exists "grade_sheets_read" on public.grade_sheets;
 create policy "grade_sheets_read" on public.grade_sheets
   for select using (true);
 
+drop policy if exists "grade_sheets_insert" on public.grade_sheets;
+create policy "grade_sheets_insert" on public.grade_sheets
+  for insert with check (true);
+
+drop policy if exists "grade_sheets_update" on public.grade_sheets;
+create policy "grade_sheets_update" on public.grade_sheets
+  for update using (true);
+
 drop policy if exists "blocks_read" on public.blocks;
 create policy "blocks_read" on public.blocks
   for select using (true);
 
 drop policy if exists "blocks_insert" on public.blocks;
 create policy "blocks_insert" on public.blocks
-  for insert with check (
-    auth.jwt()->>'email' = prof
-    OR auth.jwt()->'user_metadata'->>'role' = 'admin'
-    OR auth.jwt()->'user_metadata'->>'role' = 'dean'
-  );
+  for insert with check (true);
 
 drop policy if exists "blocks_update" on public.blocks;
 create policy "blocks_update" on public.blocks
-  for update using (
-    auth.jwt()->>'email' = prof
-    OR auth.jwt()->'user_metadata'->>'role' = 'admin'
-    OR auth.jwt()->'user_metadata'->>'role' = 'dean'
-  );
+  for update using (true);
 
 drop policy if exists "blocks_delete" on public.blocks;
 create policy "blocks_delete" on public.blocks
@@ -361,21 +361,11 @@ create policy "students_read" on public.students
 
 drop policy if exists "students_insert" on public.students;
 create policy "students_insert" on public.students
-  for insert with check (
-    auth.jwt()->>'email' = prof
-    OR auth.jwt()->'user_metadata'->>'role' = 'admin'
-    OR auth.jwt()->'user_metadata'->>'role' = 'dean'
-    OR auth.jwt()->'user_metadata'->>'role' = 'instructor'
-  );
+  for insert with check (true);
 
 drop policy if exists "students_update" on public.students;
 create policy "students_update" on public.students
-  for update using (
-    auth.jwt()->>'email' = prof
-    OR auth.jwt()->'user_metadata'->>'role' = 'admin'
-    OR auth.jwt()->'user_metadata'->>'role' = 'dean'
-    OR auth.jwt()->'user_metadata'->>'role' = 'instructor'
-  );
+  for update using (true);
 
 drop policy if exists "students_delete" on public.students;
 create policy "students_delete" on public.students

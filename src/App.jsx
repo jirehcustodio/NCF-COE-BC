@@ -512,13 +512,6 @@ export default function App() {
     };
   }, [loadData, authUser, curRole, showLanding, showOnboarding]);
 
-  useEffect(() => {
-    if (!authUser || ROLES[curRole]?.type !== 'instructor') return;
-    if (!instructorProfile?.dept) return;
-    if (authUser.user_metadata?.program === instructorProfile.dept) return;
-    updateUserMetadata({ program: instructorProfile.dept });
-  }, [authUser, curRole, instructorProfile]);
-
   async function handleRefresh() {
     setRefreshing(true);
     await loadData();
@@ -561,7 +554,6 @@ export default function App() {
       <Onboarding
         roleType={ROLES[curRole]?.type}
         requireProfile={needsProfile}
-        programOptions={programOptions}
         profileSaving={profileSaving}
         profileDefaults={{ name: instructorProfile?.name || '' }}
         onSaveProfile={async ({ name }) => {
@@ -574,7 +566,6 @@ export default function App() {
             status: 'Active',
           };
           await upsertFacultyRecord(payload);
-          await updateUserMetadata({ program });
           setFacultyRecords(prev => {
             const exists = prev.find(record => record.id === payload.id);
             if (exists) {
@@ -644,7 +635,7 @@ export default function App() {
     setShowOnboarding(shouldShowOnboarding(user, role));
   }
 
-  async function handleCreateAccount({ email, password, role, name, program, status }) {
+  async function handleCreateAccount({ email, password, role, name, status }) {
     setAuthError('');
     setAuthLoading(true);
     const { data, error } = await signUp({ email, password, role });
@@ -652,11 +643,11 @@ export default function App() {
     if (error) {
       return { error: formatAuthError(error) };
     }
-    if (name || program || status) {
+    if (name || status) {
       const payload = {
         id: email,
         name: name || email,
-        dept: program || '',
+        dept: 'General',
         rank: role === 'dean' ? 'Dean' : 'Instructor',
         status: status || 'Active',
       };
@@ -815,7 +806,7 @@ export default function App() {
           if (!vals) return Promise.resolve();
           const student = students.find(s => s.id === studentId && s.prof === authUser.email);
           if (!student) return Promise.resolve();
-          const { uploadMethod, ...studentData } = student;
+          const { uploadMethod, program, dept, ...studentData } = student;
           const res = await upsertStudent({
             ...studentData,
             prof: authUser.email,
@@ -982,28 +973,10 @@ export default function App() {
           const roleType = ROLES[curRole]?.type;
           const canViewAll = roleType === 'dean' || roleType === 'admin';
           
-          // DEBUG: Log the filtering details with MORE data
-          const uniqueProfs = new Set(studentsData.map(s => s.prof));
-          console.log('DEBUG handleEnroll refresh:', {
-            totalFetched: studentsData.length,
-            instructorKey,
-            canViewAll,
-            roleType,
-            uniqueProfsInDB: Array.from(uniqueProfs),
-            sampleStudentProfs: studentsData.slice(0, 5).map(s => ({ id: s.id, prof: s.prof, name: s.name })),
-          });
-          
           if (canViewAll) {
             setStudents(studentsData);
           } else {
             const filtered = studentsData.filter(row => row.prof === instructorKey);
-            console.log('DEBUG handleEnroll filtered:', {
-              before: studentsData.length,
-              after: filtered.length,
-              newlyEnrolled: uniqueStudents.map(s => ({ id: s.id, name: s.name })),
-              instructorKeyValue: instructorKey,
-              comparison: `Looking for prof === "${instructorKey}", found ${filtered.length} matches`,
-            });
             setStudents(filtered);
           }
         }
@@ -1263,7 +1236,7 @@ export default function App() {
   /* ---- Render current page ---- */
   function renderPage() {
   const profKey = authUser?.email || curRole;
-  const props = { students, blocks, logs, subjects, gradeSheets, curRole, profKey, program: instructorProgram, onRefresh: handleRefresh, refreshing };
+  const props = { students, blocks, logs, subjects, gradeSheets, curriculumSubjects, curRole, profKey, program: instructorProgram, onRefresh: handleRefresh, refreshing };
   const academicProps = {
     facultyRecords,
     teachingLoads,

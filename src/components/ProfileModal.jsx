@@ -118,12 +118,6 @@ export default function ProfileModal({
             <span>Role</span>
             <span>{roleLabel}</span>
           </div>
-          {program && (
-            <div className="row">
-              <span>Program</span>
-              <span>{program}</span>
-            </div>
-          )}
         </div>
 
         <div className="profile-card">

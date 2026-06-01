@@ -62,20 +62,11 @@ export async function uploadAvatar({ file, userId, filename }) {
 }
 
 export async function fetchStudents() {
-  const result = await supabase.from('students').select('*').order('id', { ascending: true });
-  if (result.error) {
-    console.error('fetchStudents error:', result.error);
-  }
-  return result;
+  return supabase.from('students').select('*').order('id', { ascending: true });
 }
 
 export async function upsertStudent(payload) {
-  console.log('upsertStudent payload:', payload);
-  const result = await supabase.from('students').upsert(payload).select('*');
-  if (result.error) {
-    console.error('upsertStudent error:', result.error);
-  }
-  return result;
+  return supabase.from('students').upsert(payload).select('*');
 }
 
 export async function deleteStudent({ id, subject, prof }) {
