@@ -294,7 +294,7 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
     }
   }
 
-  function confirmEnrollment() {
+  async function confirmEnrollment() {
     if (!selectedSubject) {
       setEnrollNotice({
         type: 'warn',
@@ -315,39 +315,57 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
         subject,
       };
     });
-    const result = onEnroll({ students: normalized, subject }) || { added: 0, skipped: 0 };
     
-    // Log enrollment activity for audit trail
-    if (onEnrollmentLogged && result.added > 0) {
-      try {
-        const enrollmentLog = {
-          prof: localStorage.getItem('currentUserEmail') || 'Unknown',
-          user: localStorage.getItem('currentUserEmail') || 'Unknown',
-          userAgent: navigator.userAgent,
-          action: 'Enrollment',
-          time: new Date().toISOString(),
-          desc: `${result.added} student(s) enrolled in ${subjectInfo?.fullName || subject}`,
-          ipAddress: 'IP detection in audit trail',
-          device: 'Browser Session',
-        };
-        onEnrollmentLogged(enrollmentLog);
-      } catch (e) {
-        console.error('Failed to log enrollment activity:', e);
+    try {
+      // Call onEnroll and wait for it to complete (includes DB persistence and refresh)
+      const result = await (async () => {
+        const res = onEnroll({ students: normalized, subject });
+        // If onEnroll returns a promise, await it; otherwise use the return value
+        return (res instanceof Promise) ? await res : (res || { added: 0, skipped: 0 });
+      })();
+    
+      // Log enrollment activity for audit trail
+      if (onEnrollmentLogged && result.added > 0) {
+        try {
+          const enrollmentLog = {
+            prof: localStorage.getItem('currentUserEmail') || 'Unknown',
+            user: localStorage.getItem('currentUserEmail') || 'Unknown',
+            userAgent: navigator.userAgent,
+            action: 'Enrollment',
+            time: new Date().toISOString(),
+            desc: `${result.added} student(s) enrolled in ${subjectInfo?.fullName || subject}`,
+            ipAddress: 'IP detection in audit trail',
+            device: 'Browser Session',
+          };
+          onEnrollmentLogged(enrollmentLog);
+        } catch (e) {
+          console.error('Failed to log enrollment activity:', e);
+        }
       }
-    }
-    
-    if (result.skipped > 0) {
+      
+      if (result.skipped > 0) {
+        setEnrollNotice({
+          type: 'warn',
+          message: `${result.skipped} duplicate student(s) were skipped for this subject.`,
+        });
+      } else {
+        setEnrollNotice({ type: 'suc', message: `${result.added} student(s) enrolled in ${subjectInfo?.fullName || subject}.` });
+      }
+      
+      // Wait a bit for state to sync before closing modal
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      setShowModal(false);
+      setStagedStudents([]);
+      localStorage.removeItem('enrollStagedStudents');
+      setMissingIds(0);
+    } catch (err) {
+      console.error('Enrollment failed:', err);
       setEnrollNotice({
-        type: 'warn',
-        message: `${result.skipped} duplicate student(s) were skipped for this subject.`,
+        type: 'err',
+        message: 'Enrollment failed. Please try again.',
       });
-    } else {
-      setEnrollNotice({ type: 'suc', message: `${result.added} student(s) enrolled in ${subjectInfo?.fullName || subject}.` });
     }
-    setShowModal(false);
-    setStagedStudents([]);
-    localStorage.removeItem('enrollStagedStudents');
-    setMissingIds(0);
     setSelectedSubject('');
   }
 
