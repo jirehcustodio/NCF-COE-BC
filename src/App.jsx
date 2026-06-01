@@ -925,7 +925,7 @@ export default function App() {
         semi: null,
         final: null,
         status: 'ok',
-        uploadMethod: 'Enrolled',
+        upload_method: 'Enrolled',
       })),
     ]);
 
