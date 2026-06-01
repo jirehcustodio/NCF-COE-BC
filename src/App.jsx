@@ -1356,14 +1356,14 @@ export default function App() {
           profile={instructorProfile}
           programOptions={programOptions}
           saving={profileSaving}
-          onSave={async ({ name, program }) => {
+          onSave={async ({ name }) => {
             if (!authUser?.email) return;
             setProfileSaving(true);
             try {
               const payload = {
                 id: authUser.email,
                 name,
-                dept: program,
+                dept: instructorProfile?.dept || '',
                 rank: instructorProfile?.rank || 'Instructor',
                 status: instructorProfile?.status || 'Active',
               };
@@ -1380,12 +1380,7 @@ export default function App() {
                 return [...prev, payload];
               });
               
-              // Update auth metadata - this triggers auth listener
-              await updateUserMetadata({ program });
-              
-              // Immediately call loadData to refresh all data with new auth state
-              // This prevents race conditions where auth listener's loadData might
-              // run with stale auth data
+              // Refresh data to ensure consistency
               if (isActiveRef.current) {
                 await loadData();
               }

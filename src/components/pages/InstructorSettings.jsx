@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Notice } from '../Shared';
 
 export default function InstructorSettings({
   profile,
@@ -8,13 +7,11 @@ export default function InstructorSettings({
   saving = false,
 }) {
   const [name, setName] = useState(profile?.name || '');
-  const [program, setProgram] = useState(profile?.dept || '');
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
 
   useEffect(() => {
     setName(profile?.name || '');
-    setProgram(profile?.dept || '');
   }, [profile]);
 
   useEffect(() => {
@@ -29,13 +26,9 @@ export default function InstructorSettings({
       setError('Please enter your full name.');
       return;
     }
-    if (!program) {
-      setError('Please select your program.');
-      return;
-    }
     setError('');
     if (onSave) {
-      await onSave({ name: trimmedName, program });
+      await onSave({ name: trimmedName });
     }
     setToast('Settings saved.');
   }
@@ -44,12 +37,8 @@ export default function InstructorSettings({
     <>
       <div className="ph">
         <h2>Instructor settings</h2>
-        <p>Update your program so the dean can identify your handled subjects.</p>
+        <p>Update your profile information.</p>
       </div>
-
-      <Notice type="info" icon="ti-id-badge">
-        Your program is displayed on the dean’s faculty records and is used for program filtering.
-      </Notice>
 
       <div className="card">
         <div className="form-grid">
@@ -60,18 +49,6 @@ export default function InstructorSettings({
               onChange={event => setName(event.target.value)}
               placeholder="Cecille Roja"
             />
-          </div>
-          <div className="fg">
-            <label>Program handled</label>
-            <select
-              value={program}
-              onChange={event => setProgram(event.target.value)}
-            >
-              <option value="">Select program</option>
-              {programOptions.map(option => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
           </div>
         </div>
         {error && <div className="landing-error" style={{ marginTop: 12 }}>{error}</div>}
