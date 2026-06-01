@@ -733,7 +733,8 @@ export default function App() {
   async function handleCommit({ subject, period, gradeValues }) {
     const rd      = ROLES[curRole];
     const hash    = genHash();
-    const now     = nowStr();
+    const nowIso  = new Date().toISOString();
+    const nowLabel = nowStr();
     const profKey = authUser?.email || curRole;
     const subjCode = subject.split('–')[0].trim();
     
@@ -763,7 +764,7 @@ export default function App() {
     const newBlock = {
       num: nextBlock, hash,
       prev: blocks.length > 0 ? blocks[blocks.length - 1]?.hash : '0x0000...0000',
-      time: now, prof: profKey,
+      time: nowIso, prof: profKey,
       subj: subjCode, period, count: gradesCount,
       status: 'committed',
     };
@@ -771,7 +772,7 @@ export default function App() {
 
     // Add log entry
     const newLog = {
-      time: now, dot: 'g',
+      time: nowIso, dot: 'g',
       desc: `${rd.name} committed ${subjCode} ${period} grades (${gradesCount} students) — Block #${nextBlock}`,
       prof: profKey,
     };
@@ -794,7 +795,7 @@ export default function App() {
         subject: subjCode,
         section: '—',
         period,
-        lastUpdated: now,
+        lastUpdated: nowIso,
         status: 'Submitted',
       };
       if (exists) {
@@ -846,7 +847,7 @@ export default function App() {
           subject: subjCode,
           section: '—',
           period,
-          last_updated: now,
+          last_updated: nowIso,
           status: 'Submitted',
         });
         if (sheetError) throw sheetError;
@@ -864,7 +865,7 @@ export default function App() {
             const maxBlockNum = Math.max(...blockNumbers);
             // Now that persistence is confirmed, set nextBlock accordingly and show success modal
             setNextBlock(maxBlockNum + 1);
-            setModal({ num: maxBlockNum, hash, time: now, subj: subjCode, period, count: gradesCount, by: rd.name });
+            setModal({ num: maxBlockNum, hash, time: nowLabel, subj: subjCode, period, count: gradesCount, by: rd.name });
             // Note: modal shows the block that was just created (maxBlockNum)
           }
         }
