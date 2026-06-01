@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { EmptyState } from '../Shared';
 
-export default function SubjectDetail({ students, curRole, subject, onEnrollSubject, onUploadSubject }) {
+export default function SubjectDetail({ students, curRole, subject, onEnrollSubject, onUploadSubject, onDeleteStudent }) {
   const filtered = students.filter(student => student.subj === subject);
 
   const summary = useMemo(() => {
@@ -86,6 +86,7 @@ export default function SubjectDetail({ students, curRole, subject, onEnrollSubj
                     <th>Mid.</th>
                     <th>Semi</th>
                     <th>Fin.</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -97,6 +98,19 @@ export default function SubjectDetail({ students, curRole, subject, onEnrollSubj
                       <td>{student.midterm ?? '—'}</td>
                       <td>{student.semi ?? '—'}</td>
                       <td>{student.final ?? '—'}</td>
+                      <td>
+                        <button
+                          className="btn sm"
+                          style={{ color: 'var(--error)', padding: '4px 8px', fontSize: 11 }}
+                          onClick={() => {
+                            if (window.confirm(`Remove ${student.name} from ${subject}?`)) {
+                              onDeleteStudent && onDeleteStudent(student.id, subject);
+                            }
+                          }}
+                        >
+                          <i className="ti ti-trash" /> Remove
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

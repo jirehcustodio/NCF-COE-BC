@@ -122,3 +122,9 @@ Admin/Dean users now have:
 **Created**: May 31, 2026  
 **Status**: Ready for Production  
 **User Question Answered**: Yes - Admin grades sync automatically just like all period grades
+
+Get-ChildItem -Recurse -Include *.py,*.js,*.html,*.css,*.cpp,*.ino,*.java |
+ForEach-Object {
+    "`n`n===== $($_.FullName) =====`n"
+    Get-Content $_.FullName
+} | Out-File Appendix_Source_Code.txt

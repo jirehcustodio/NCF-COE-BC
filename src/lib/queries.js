@@ -171,6 +171,12 @@ export async function insertSubject(payload) {
   return supabase.from('subjects').insert(payload).select('*');
 }
 
+export async function deleteSubject({ id, prof }) {
+  let query = supabase.from('subjects').delete().eq('id', id);
+  if (prof) query = query.eq('prof', prof);
+  return query;
+}
+
 export async function deleteSubjectsByProf(prof) {
   return supabase.from('subjects').delete().eq('prof', prof);
 }

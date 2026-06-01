@@ -13,6 +13,7 @@ export default function MySubjects({
   onOpenSubject,
   onCreateSubject,
   onRefresh,
+  onDeleteSubject,
   refreshing = false,
 }) {
   const rd = ROLES[curRole];
@@ -55,14 +56,21 @@ export default function MySubjects({
     const map = new Map();
     myStudents.forEach(student => {
       const subject = student.subj || 'Unassigned';
-      const current = map.get(subject) || { subject, count: 0 };
+      const current = map.get(subject) || { subject, count: 0, code: subject, title: '' };
       map.set(subject, { ...current, count: current.count + 1 });
     });
     subjects.forEach(subject => {
       const code = subject.code || subject.subject;
       if (!code) return;
       if (!map.has(code)) {
-        map.set(code, { subject: code, count: 0 });
+        map.set(code, { subject: code, count: 0, code, title: subject.title || '', id: subject.id });
+      } else {
+        // Update with subject details if not already present
+        const existing = map.get(code);
+        if (!existing.title) {
+          existing.title = subject.title || '';
+          existing.id = subject.id;
+        }
       }
     });
     return Array.from(map.values()).sort((a, b) => a.subject.localeCompare(b.subject));
@@ -153,7 +161,10 @@ export default function MySubjects({
           {subjectCards.map(subject => (
             <div className="card" key={subject.subject}>
               <div className="ch">
-                <span className="ct">{subject.subject}</span>
+                <div>
+                  <span className="ct">{subject.subject}</span>
+                  {subject.title && <p style={{ fontSize: 12, color: 'var(--text-2)', margin: '4px 0 0 0' }}>{subject.title}</p>}
+                </div>
                 <span className="badge info"><i className="ti ti-users" /> {subject.count} students</span>
               </div>
               <div className="inline-actions">
@@ -174,6 +185,17 @@ export default function MySubjects({
                   onClick={() => onUploadSubject(subject.subject)}
                 >
                   <i className="ti ti-upload" /> Upload grades
+                </button>
+                <button
+                  className="btn sm"
+                  style={{ color: 'var(--error)' }}
+                  onClick={() => {
+                    if (window.confirm(`Delete subject "${subject.subject}"? This action cannot be undone.`)) {
+                      onDeleteSubject && onDeleteSubject(subject.id, subject.subject);
+                    }
+                  }}
+                >
+                  <i className="ti ti-trash" /> Delete
                 </button>
               </div>
             </div>

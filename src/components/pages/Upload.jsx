@@ -713,7 +713,7 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
               <Notice type="err" icon="ti-alert-circle">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span><strong>Commit failed:</strong> {commitError}</span>
-                  <button className="btn sm" onClick={onClearCommitError} style={{ marginLeft: '12px' }}>
+                  <button className="btn sm" onClick={() => setCommitError('')} style={{ marginLeft: '12px' }}>
                     <i className="ti ti-x" /> Dismiss
                   </button>
                 </div>

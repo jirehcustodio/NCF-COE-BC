@@ -48,6 +48,7 @@ import {
   upsertStudent,
   upsertFacultyRecord,
   deleteFacultyRecord,
+  deleteSubject,
   deleteSubjectsByProf,
   deleteStudentsByProf,
 } from './lib/queries';
@@ -1032,6 +1033,29 @@ export default function App() {
     }
   }
 
+  async function handleDeleteSubject(subjectId, subjectCode) {
+    if (!subjectId) return;
+    try {
+      const prof = authUser?.email || curRole;
+      await deleteSubject({ id: subjectId, prof });
+      setSubjects(prev => prev.filter(s => !(s.id === subjectId || s.code === subjectCode)));
+      setStudents(prev => prev.filter(s => s.subj !== subjectCode));
+    } catch (err) {
+      console.error('Delete subject error:', err);
+    }
+  }
+
+  async function handleDeleteStudent(studentId, subjectCode) {
+    if (!studentId || !subjectCode) return;
+    try {
+      const prof = authUser?.email || curRole;
+      await deleteStudent({ id: studentId, subject: subjectCode, prof });
+      setStudents(prev => prev.filter(s => !(s.id === studentId && s.subj === subjectCode)));
+    } catch (err) {
+      console.error('Delete student error:', err);
+    }
+  }
+
   async function handleSavePeriodicalGrades({ periodKey, updates }) {
     if (!periodKey || !updates?.length) return;
     const now = new Date().toISOString();
@@ -1251,6 +1275,7 @@ export default function App() {
           curriculumSubjects={curriculumSubjects}
           program={instructorProgram}
           onCreateSubject={handleCreateSubject}
+          onDeleteSubject={handleDeleteSubject}
           onEnrollSubject={(subject) => {
             setEnrollSubject(subject);
             handleNavigate('enroll');
@@ -1277,6 +1302,7 @@ export default function App() {
             setUploadSubject(subject);
             handleNavigate('upload');
           }}
+          onDeleteStudent={handleDeleteStudent}
         />
       );
       case 'mystudents':    return (
