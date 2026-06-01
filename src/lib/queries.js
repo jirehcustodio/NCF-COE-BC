@@ -72,7 +72,8 @@ export async function upsertStudent(payload) {
 export async function deleteStudent({ id, subject, prof }) {
   let query = supabase.from('students').delete().eq('id', id).eq('subj', subject);
   if (prof) query = query.eq('prof', prof);
-  return query;
+  const result = await query;
+  return result;
 }
 
 export async function deleteAllStudents() {
@@ -176,13 +177,16 @@ export async function deleteSubject({ code, id, prof }) {
   if (code) query = query.eq('code', code);
   if (id) query = query.eq('id', id);
   if (prof) query = query.eq('prof', prof);
-  return query;
+  const result = await query;
+  return result;
 }
 
 export async function deleteSubjectsByProf(prof) {
-  return supabase.from('subjects').delete().eq('prof', prof);
+  const result = await supabase.from('subjects').delete().eq('prof', prof);
+  return result;
 }
 
 export async function deleteStudentsByProf(prof) {
-  return supabase.from('students').delete().eq('prof', prof);
+  const result = await supabase.from('students').delete().eq('prof', prof);
+  return result;
 }

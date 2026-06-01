@@ -1049,11 +1049,16 @@ export default function App() {
     try {
       const prof = authUser?.email || curRole;
       // Delete by code and prof instead of ID
-      await deleteSubject({ code: subjectCode, prof });
+      const result = await deleteSubject({ code: subjectCode, prof });
+      if (result?.error) {
+        console.error('Delete subject error from DB:', result.error);
+        return;
+      }
+      // Update local state
       setSubjects(prev => prev.filter(s => !(s.code === subjectCode && s.prof === prof)));
       setStudents(prev => prev.filter(s => s.subj !== subjectCode));
     } catch (err) {
-      console.error('Delete subject error:', err);
+      console.error('Delete subject exception:', err);
     }
   }
 
@@ -1061,10 +1066,15 @@ export default function App() {
     if (!studentId || !subjectCode) return;
     try {
       const prof = authUser?.email || curRole;
-      await deleteStudent({ id: studentId, subject: subjectCode, prof });
+      const result = await deleteStudent({ id: studentId, subject: subjectCode, prof });
+      if (result?.error) {
+        console.error('Delete student error from DB:', result.error);
+        return;
+      }
+      // Update local state
       setStudents(prev => prev.filter(s => !(s.id === studentId && s.subj === subjectCode)));
     } catch (err) {
-      console.error('Delete student error:', err);
+      console.error('Delete student exception:', err);
     }
   }
 
