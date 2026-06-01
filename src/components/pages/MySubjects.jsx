@@ -175,9 +175,9 @@ export default function MySubjects({
               <div className="ch">
                 <div style={{ flex: 1 }}>
                   <span className="ct">{subject.title || subject.subject}</span>
-                  <p style={{ fontSize: 12, color: 'var(--text-2)', margin: '4px 0 0 0' }}>
-                    Code: {subject.subject}
-                  </p>
+                  {subject.title && <p style={{ fontSize: 12, color: 'var(--text-2)', margin: '4px 0 0 0' }}>
+                    {subject.subject}
+                  </p>}
                   {(subject.year || subject.semester) && (
                     <p style={{ fontSize: 11, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
                       {subject.year && <span>{subject.year} Year</span>}

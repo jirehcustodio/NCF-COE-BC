@@ -1005,7 +1005,18 @@ export default function App() {
     if (!normalized) return;
     const prof = authUser?.email || curRole;
     if (subjects.some(item => item.code === normalized && item.prof === prof)) return;
-    setSubjects(prev => [...prev, { code: normalized, prof }]);
+    
+    // Find the curriculum subject to get title, year, semester
+    const currSubject = curriculumSubjects.find(cs => cs.code === normalized);
+    const newSubject = { 
+      code: normalized, 
+      prof,
+      title: currSubject?.title || '',
+      year: currSubject?.year || '',
+      semester: currSubject?.semester || '',
+    };
+    
+    setSubjects(prev => [...prev, newSubject]);
     const defaultPeriods = ['Prelim', 'Midterm', 'Semi-Final', 'Final'];
     setGradeSheets(prev => {
       const updates = defaultPeriods
@@ -1020,7 +1031,7 @@ export default function App() {
       return updates.length ? [...prev, ...updates] : prev;
     });
     if (authUser) {
-      insertSubject({ code: normalized, prof: authUser.email });
+      insertSubject({ code: normalized, prof: authUser.email, title: currSubject?.title || '' });
       defaultPeriods.forEach(period => {
         insertGradeSheet({
           subject: normalized,
