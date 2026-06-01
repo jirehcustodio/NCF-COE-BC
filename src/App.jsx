@@ -400,32 +400,37 @@ export default function App() {
       const roleType = ROLES[curRole]?.type;
 
       const normalize = (items) => Array.isArray(items) ? items : [];
-  const studentsData = normalize(studentsRes.data).map(row => ({
-    ...row,
-    uploadMethod: row.upload_method,
-  }));
-  const blocksData = normalize(blocksRes.data);
-  const logsData = normalize(logsRes.data);
-  const subjectsData = normalize(subjectsRes.data);
+      const studentsData = normalize(studentsRes.data).map(row => ({
+        ...row,
+        uploadMethod: row.upload_method,
+      }));
+      const blocksData = normalize(blocksRes.data);
+      const logsData = normalize(logsRes.data);
+      const subjectsData = normalize(subjectsRes.data);
+      const hasBlocksError = !!blocksRes.error;
 
       // Keep an unfiltered copy of subjects for pages that need to show all subjects
       setAllSubjects(subjectsData);
       const canViewAll = roleType === 'dean' || roleType === 'admin';
       if (canViewAll) {
         setStudents(studentsData);
-        setBlocks(blocksData);
+        if (!hasBlocksError) {
+          setBlocks(blocksData);
+        }
         setLogs(logsData);
         setSubjects(subjectsData);
       } else {
         setStudents(studentsData.filter(row => row.prof === instructorKey));
-        setBlocks(blocksData.filter(row => row.prof === instructorKey));
+        if (!hasBlocksError) {
+          setBlocks(blocksData.filter(row => row.prof === instructorKey));
+        }
         setLogs(logsData.filter(row => row.prof === instructorKey));
         setSubjects(subjectsData.filter(row => row.prof === instructorKey));
       }
 
       // Calculate next block number from highest existing block
       // This ensures block numbers always increment correctly and persist on refresh
-      if (blocksData && blocksData.length > 0) {
+      if (!hasBlocksError && blocksData && blocksData.length > 0) {
         const blockNumbers = blocksData.map(b => Number(b.num) || 0).filter(n => n > 0);
         const maxBlockNum = Math.max(...blockNumbers);
         setNextBlock(maxBlockNum + 1);
@@ -487,14 +492,17 @@ export default function App() {
             }));
             const blocksData = normalize(blocksRes.data);
             const logsData = normalize(logsRes.data);
+            const hasBlocksError = !!blocksRes.error;
 
             // Update state with fresh data from database
             setStudents(studentsData);
-            setBlocks(blocksData);
+            if (!hasBlocksError) {
+              setBlocks(blocksData);
+            }
             setLogs(logsData);
 
             // Recalculate nextBlock from latest blocks
-            if (blocksData && blocksData.length > 0) {
+            if (!hasBlocksError && blocksData && blocksData.length > 0) {
               const blockNumbers = blocksData.map(b => Number(b.num) || 0).filter(n => n > 0);
               const maxBlockNum = Math.max(...blockNumbers);
               setNextBlock(maxBlockNum + 1);
