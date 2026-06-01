@@ -742,18 +742,16 @@ export default function App() {
       return [...prev, updated];
     });
 
-    // Show success modal
-    setModal({ num: nextBlock, hash, time: now, subj: subjCode, period, count: gradesCount, by: rd.name });
-    setNextBlock(n => n + 1);
+  // NOTE: Do not show success modal or advance nextBlock yet — wait until persistence completes.
 
     if (authUser) {
       try {
-        // Update all students with their grades
-        await Promise.all(Object.entries(gradeValues).map(([studentId, vals]) => {
+        // Update all students with their grades. If any upsert fails, throw so the whole commit aborts.
+        await Promise.all(Object.entries(gradeValues).map(async ([studentId, vals]) => {
           if (!vals) return Promise.resolve();
           const student = students.find(s => s.id === studentId && s.prof === authUser.email);
           if (!student) return Promise.resolve();
-          return upsertStudent({
+          const res = await upsertStudent({
             ...student,
             prof: authUser.email,
             prelim: parseInt(vals.prelim) || student.prelim,
@@ -763,6 +761,8 @@ export default function App() {
             status: 'chain',
             upload_method: 'Uploaded (committed)',
           });
+          if (res?.error) throw res.error;
+          return res;
         }));
 
         // Insert block
@@ -794,7 +794,10 @@ export default function App() {
           if (blocksArray.length > 0) {
             const blockNumbers = blocksArray.map(b => Number(b.num) || 0).filter(n => n > 0);
             const maxBlockNum = Math.max(...blockNumbers);
+            // Now that persistence is confirmed, set nextBlock accordingly and show success modal
             setNextBlock(maxBlockNum + 1);
+            setModal({ num: maxBlockNum, hash, time: now, subj: subjCode, period, count: gradesCount, by: rd.name });
+            // Note: modal shows the block that was just created (maxBlockNum)
           }
         }
 
