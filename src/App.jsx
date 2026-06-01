@@ -1034,11 +1034,12 @@ export default function App() {
   }
 
   async function handleDeleteSubject(subjectId, subjectCode) {
-    if (!subjectId) return;
+    if (!subjectCode) return;
     try {
       const prof = authUser?.email || curRole;
-      await deleteSubject({ id: subjectId, prof });
-      setSubjects(prev => prev.filter(s => !(s.id === subjectId || s.code === subjectCode)));
+      // Delete by code and prof instead of ID
+      await deleteSubject({ code: subjectCode, prof });
+      setSubjects(prev => prev.filter(s => !(s.code === subjectCode && s.prof === prof)));
       setStudents(prev => prev.filter(s => s.subj !== subjectCode));
     } catch (err) {
       console.error('Delete subject error:', err);

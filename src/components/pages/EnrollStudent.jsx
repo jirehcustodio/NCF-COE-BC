@@ -126,15 +126,18 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
   const [stagedStudents, setStagedStudents] = useState([]);
   const [missingIds, setMissingIds] = useState(0);
   const [showModal, setShowModal] = useState(false);
+  const [showProgramModal, setShowProgramModal] = useState(false);
+  const [selectedProgram, setSelectedProgram] = useState('');
   const [selectedSubject, setSelectedSubject] = useState(initialSubject);
   const [subjectSearch, setSubjectSearch] = useState('');
   const [enrollNotice, setEnrollNotice] = useState(null);
   const [manualStudent, setManualStudent] = useState({ id: '', name: '', program: '' });
 
   const inferredProgram = useMemo(() => {
+    if (selectedProgram) return selectedProgram;
     const firstProgram = stagedStudents.find(student => student.program)?.program;
     return firstProgram || program || '';
-  }, [stagedStudents, program]);
+  }, [stagedStudents, program, selectedProgram]);
 
   const subjectOptions = useMemo(() => {
     const excluded = new Set(['CE 401', 'ENR 310', 'GEC 4']);
@@ -272,6 +275,19 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
 
   function openSubjectModal() {
     if (!stagedStudents.length) return;
+    setShowProgramModal(true);
+    setSelectedProgram(inferredProgram || '');
+  }
+
+  function confirmProgramSelection() {
+    if (!selectedProgram) {
+      setEnrollNotice({
+        type: 'warn',
+        message: 'Please select a program.',
+      });
+      return;
+    }
+    setShowProgramModal(false);
     setShowModal(true);
     if (!selectedSubject && subjectOptions.length) {
       setSelectedSubject(subjectOptions[0]);
@@ -451,6 +467,35 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
             {missingIds} students are missing IDs. IDs will be auto-generated if you proceed.
           </Notice>
         )}
+      </div>
+
+      <div className={`modal-bg ${showProgramModal ? 'open' : ''}`} onClick={() => setShowProgramModal(false)}>
+        <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="modal-hdr">
+            <h3>Select Program</h3>
+            <button className="close-btn" onClick={() => setShowProgramModal(false)}><i className="ti ti-x" /></button>
+          </div>
+          <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 16 }}>
+            Choose the program for the {stagedStudents.length} student(s) you're enrolling.
+          </p>
+          <div className="form-grid">
+            <div className="fg">
+              <label>Program</label>
+              <select value={selectedProgram} onChange={e => setSelectedProgram(e.target.value)}>
+                <option value="">-- Select Program --</option>
+                {programOptions.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="modal-actions">
+            <button className="btn" onClick={() => setShowProgramModal(false)}>Cancel</button>
+            <button className="btn pri" onClick={confirmProgramSelection}>
+              Continue
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className={`modal-bg ${showModal ? 'open' : ''}`}>
