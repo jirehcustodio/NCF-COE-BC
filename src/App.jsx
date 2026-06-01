@@ -1375,6 +1375,28 @@ export default function App() {
               }
               return [...prev, payload];
             });
+            // Refresh students after profile update to ensure no data is filtered out
+            if (isActiveRef.current) {
+              try {
+                const { data: refreshedStudents } = await fetchStudents();
+                if (refreshedStudents && isActiveRef.current) {
+                  const studentsData = normalize(refreshedStudents).map(row => ({
+                    ...row,
+                    uploadMethod: row.upload_method,
+                  }));
+                  const instructorKey = authUser.email;
+                  const roleType = ROLES[curRole]?.type;
+                  const canViewAll = roleType === 'dean' || roleType === 'admin';
+                  if (canViewAll) {
+                    setStudents(studentsData);
+                  } else {
+                    setStudents(studentsData.filter(row => row.prof === instructorKey));
+                  }
+                }
+              } catch (err) {
+                console.warn('Failed to refresh students:', err);
+              }
+            }
             setProfileSaving(false);
           }}
         />
