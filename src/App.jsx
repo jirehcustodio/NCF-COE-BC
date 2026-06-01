@@ -1359,43 +1359,38 @@ export default function App() {
           onSave={async ({ name, program }) => {
             if (!authUser?.email) return;
             setProfileSaving(true);
-            const payload = {
-              id: authUser.email,
-              name,
-              dept: program,
-              rank: instructorProfile?.rank || 'Instructor',
-              status: instructorProfile?.status || 'Active',
-            };
-            await upsertFacultyRecord(payload);
-            await updateUserMetadata({ program });
-            setFacultyRecords(prev => {
-              const exists = prev.find(record => record.id === payload.id);
-              if (exists) {
-                return prev.map(record => (record.id === payload.id ? { ...record, ...payload } : record));
-              }
-              return [...prev, payload];
-            });
-            // Refresh students after profile update to ensure no data is filtered out
-            if (isActiveRef.current) {
-              try {
-                const { data: refreshedStudents } = await fetchStudents();
-                if (refreshedStudents && isActiveRef.current) {
-                  const studentsData = normalize(refreshedStudents).map(row => ({
-                    ...row,
-                    uploadMethod: row.upload_method,
-                  }));
-                  const instructorKey = authUser.email;
-                  const roleType = ROLES[curRole]?.type;
-                  const canViewAll = roleType === 'dean' || roleType === 'admin';
-                  if (canViewAll) {
-                    setStudents(studentsData);
-                  } else {
-                    setStudents(studentsData.filter(row => row.prof === instructorKey));
-                  }
+            try {
+              const payload = {
+                id: authUser.email,
+                name,
+                dept: program,
+                rank: instructorProfile?.rank || 'Instructor',
+                status: instructorProfile?.status || 'Active',
+              };
+              
+              // Update faculty record
+              await upsertFacultyRecord(payload);
+              
+              // Update local faculty records state immediately
+              setFacultyRecords(prev => {
+                const exists = prev.find(record => record.id === payload.id);
+                if (exists) {
+                  return prev.map(record => (record.id === payload.id ? { ...record, ...payload } : record));
                 }
-              } catch (err) {
-                console.warn('Failed to refresh students:', err);
+                return [...prev, payload];
+              });
+              
+              // Update auth metadata - this triggers auth listener
+              await updateUserMetadata({ program });
+              
+              // Immediately call loadData to refresh all data with new auth state
+              // This prevents race conditions where auth listener's loadData might
+              // run with stale auth data
+              if (isActiveRef.current) {
+                await loadData();
               }
+            } catch (err) {
+              console.error('Settings save failed:', err);
             }
             setProfileSaving(false);
           }}
