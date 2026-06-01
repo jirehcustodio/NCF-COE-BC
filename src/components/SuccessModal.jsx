@@ -5,6 +5,14 @@ import React from 'react';
 import { HashDisplay } from './Shared';
 
 export default function SuccessModal({ data, onClose, onViewLedger }) {
+  if (!data) {
+    return (
+      <div className="modal-bg">
+        {/* Modal overlay only, no content */}
+      </div>
+    );
+  }
+
   return (
     <div className={`modal-bg ${data ? 'open' : ''}`}>
       <div className="modal">
