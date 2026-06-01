@@ -950,24 +950,30 @@ export default function App() {
         }]);
       }
 
-      uniqueStudents.forEach(student => {
-        upsertStudent({
-          id: student.id,
-          name: student.name,
-          subj: subject,
-          prof: authUser.email,
-          program: student.program || '',
-          prelim: null,
-          midterm: null,
-          semi: null,
-          final: null,
-          status: 'ok',
-          upload_method: 'Enrolled',
-        });
-      });
+      // Wait for ALL student upserts to complete before proceeding
+      try {
+        await Promise.all(uniqueStudents.map(student =>
+          upsertStudent({
+            id: student.id,
+            name: student.name,
+            subj: subject,
+            prof: authUser.email,
+            program: student.program || '',
+            prelim: null,
+            midterm: null,
+            semi: null,
+            final: null,
+            status: 'ok',
+            upload_method: 'Enrolled',
+          })
+        ));
+      } catch (err) {
+        console.error('Failed to upsert students during enrollment:', err);
+        throw err;
+      }
 
-      // Wait a bit for students to persist, then refresh from database
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait a bit for database to settle before fetching
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // Refresh students to ensure enrollment is persisted
       try {
