@@ -17,12 +17,10 @@ export default function Instructors({
   allowCreate = false,
 }) {
   const [query, setQuery] = useState('');
-  const [program, setProgram] = useState('');
   const [showDelete, setShowDelete] = useState(false);
   const [selectedInstructor, setSelectedInstructor] = useState(null);
   const [formEmail, setFormEmail] = useState('');
   const [formName, setFormName] = useState('');
-  const [formProgram, setFormProgram] = useState('');
   const [formRole, setFormRole] = useState('instructor');
   const [formPassword, setFormPassword] = useState('');
   const [formStatus, setFormStatus] = useState('Active');
@@ -63,25 +61,12 @@ export default function Instructors({
   const filtered = rows.filter(row => {
     if (!query) return true;
     const lower = query.toLowerCase();
-    const program = getProgram(row).toLowerCase();
     const name = (row.name || '').toLowerCase();
     const id = (row.id || row.email || '').toLowerCase();
-    return name.includes(lower) || id.includes(lower) || program.includes(lower);
+    return name.includes(lower) || id.includes(lower);
   });
 
-  const programs = useMemo(() => {
-    const fromRows = rows.map(getProgram).filter(Boolean);
-    return Array.from(new Set(fromRows)).sort((a, b) => a.localeCompare(b));
-  }, [rows]);
-
-  const programOptions = useMemo(() => ['BSCE', 'BSCpE', 'BSGE'], []);
-
-  const filteredByProgram = filtered.filter(row => {
-    if (!program) return true;
-    return getProgram(row) === program;
-  });
-
-  const instructorRows = filteredByProgram.map(row => {
+  const instructorRows = filtered.map(row => {
     const id = row.id || row.email;
     const name = row.name || row.full_name || row.email || '—';
     const uploads = blocks.filter(block => block.prof === id).length;
@@ -93,7 +78,6 @@ export default function Instructors({
     return {
       id,
       name,
-      dept: getProgram(row) || row.dept || '—',
       uploads,
       subjects: subjectCount,
       last: lastLog?.time || '—',
@@ -127,7 +111,6 @@ export default function Instructors({
       password: formPassword,
       role: formRole,
       name: formName,
-      program: formProgram,
       status: formStatus,
     });
     if (result?.error) {
@@ -140,7 +123,6 @@ export default function Instructors({
     setFormEmail('');
     setFormPassword('');
     setFormName('');
-    setFormProgram('');
     setFormRole('instructor');
     setFormStatus('Active');
     setFormMessage('');
@@ -231,15 +213,6 @@ export default function Instructors({
               <input value={formName} onChange={event => setFormName(event.target.value)} placeholder="Instructor name" />
             </div>
             <div className="fg">
-              <label>Program/Department</label>
-              <select value={formProgram} onChange={event => setFormProgram(event.target.value)}>
-                <option value="">Select program</option>
-                {programOptions.map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-            </div>
-            <div className="fg">
               <label>Role</label>
               <select value={formRole} onChange={event => setFormRole(event.target.value)}>
                 <option value="instructor">Instructor</option>
@@ -265,22 +238,16 @@ export default function Instructors({
       <div className="card">
         <div className="search-row">
           <input
-            placeholder="Search by name, email, or program..."
+            placeholder="Search by name or email..."
             value={query}
             onChange={event => setQuery(event.target.value)}
           />
-          <select value={program} onChange={event => setProgram(event.target.value)}>
-            <option value="">All programs</option>
-            {programs.map(item => (
-              <option key={item} value={item}>{item}</option>
-            ))}
-          </select>
         </div>
         <div className="tbl-wrap">
           <table>
             <thead>
               <tr>
-                <th>Name</th><th>Program</th><th>Subjects</th>
+                <th>Name</th><th>Subjects</th>
                   <th>Uploads</th><th>Last active</th><th>Status</th><th />
               </tr>
             </thead>
@@ -295,7 +262,6 @@ export default function Instructors({
               {instructorRows.map((r, i) => (
                 <tr key={r.id || i}>
                   <td style={{ fontWeight: 500 }}>{r.name}</td>
-                  <td style={{ fontSize: 11 }}>{r.dept}</td>
                   <td>{r.subjects}</td>
                   <td>{r.uploads}</td>
                   <td style={{ fontSize: 11 }}>{r.last}</td>

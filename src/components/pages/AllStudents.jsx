@@ -214,7 +214,7 @@ export default function AllStudents({ students, logs = [], onDeleteStudent }) {
                   />
                 </th>
                 <th>Student ID</th><th>Name</th>
-                <th>Subject</th><th>Instructor</th><th>Upload method</th><th>Status</th>
+                <th>Program</th><th>Subject</th><th>Instructor</th><th>Upload method</th><th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -233,6 +233,7 @@ export default function AllStudents({ students, logs = [], onDeleteStudent }) {
                   </td>
                   <td className="hash">{s.id}</td>
                   <td style={{ fontWeight: 500 }}>{s.name}</td>
+                  <td>{s.program || '—'}</td>
                   <td>{s.subj}</td>
                   <td style={{ fontSize: 11 }}>{ROLES[s.prof]?.name || s.prof}</td>
                   <td><UploadMethodBadge method={s.uploadMethod} /></td>

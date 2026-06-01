@@ -153,6 +153,7 @@ create table if not exists public.students (
   name text not null,
   subj text not null,
   prof text not null,
+  program text,
   prelim integer,
   midterm integer,
   semi integer,
