@@ -455,7 +455,7 @@ export default function App() {
       console.error('Failed to load initial data:', error);
       setLoadError(error?.message || 'Failed to load data after login. Please try again.');
     }
-  }, [authUser, curRole, showLanding]);
+  }, [authUser, curRole, showLanding, showOnboarding]);
 
   useEffect(() => {
     isActiveRef.current = true;
@@ -509,7 +509,7 @@ export default function App() {
       isActiveRef.current = false;
       if (refreshInterval) clearInterval(refreshInterval);
     };
-  }, [loadData, authUser, curRole, showLanding]);
+  }, [loadData, authUser, curRole, showLanding, showOnboarding]);
 
   useEffect(() => {
     if (!authUser || ROLES[curRole]?.type !== 'instructor') return;
