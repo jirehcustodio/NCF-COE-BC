@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ROLES } from '../../data/appData';
 import { StatusBadge, Notice } from '../Shared';
 
-export default function MyStudents({ students, curRole, profKey, program = '', onNavigate, onDeleteStudent, onRefresh, refreshing = false, allowDelete = false }) {
+export default function MyStudents({ students, curRole, profKey, program = '', subjects = [], onNavigate, onDeleteStudent, onRefresh, refreshing = false, allowDelete = false }) {
   const activeProf = profKey || curRole;
   const myS = students.filter(s => s.prof === activeProf);
   const rd  = ROLES[curRole];
@@ -11,6 +11,17 @@ export default function MyStudents({ students, curRole, profKey, program = '', o
   const [statusFilter, setStatusFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Create a map of subject codes to titles
+  const subjectMap = useMemo(() => {
+    const map = {};
+    subjects.forEach(s => {
+      if (s.code) {
+        map[s.code] = s.title || s.code;
+      }
+    });
+    return map;
+  }, [subjects]);
 
   // Calculate average grade and determine pass/fail
   function calculateAverage(student) {
@@ -147,7 +158,9 @@ export default function MyStudents({ students, curRole, profKey, program = '', o
                   <tr key={`${s.id}-${s.subj}`}>
                     <td className="hash">{s.id}</td>
                     <td style={{ fontWeight: 500 }}>{s.name}</td>
-                    <td>{s.subj}</td>
+                    <td title={s.subj} style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {subjectMap[s.subj] || s.subj}
+                    </td>
                     <td>
                       {program || s.dept ? (
                         <span className="badge info">{program || s.dept}</span>

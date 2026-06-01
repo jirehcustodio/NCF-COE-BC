@@ -113,6 +113,8 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
   const [detectedTemplate, setDetectedTemplate] = useState(null);
   const [subject,     setSubject]     = useState('');
   const [period,      setPeriod]      = useState('Final');
+  const [program,     setProgram]     = useState('');
+  const [showProgramConfirm, setShowProgramConfirm] = useState(false);
   const [showEnrollConfirm, setShowEnrollConfirm] = useState(false);
   const [subjectSearch, setSubjectSearch] = useState('');
   const [committing, setCommitting] = useState(false);
@@ -149,6 +151,12 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
       setSubject(subjectOptions[0]);
     }
   }, [subjectOptions, subject]);
+
+  useEffect(() => {
+    if (subject && !program) {
+      setShowProgramConfirm(true);
+    }
+  }, [subject]);
 
   useEffect(() => {
     if (!ocrPreview?.url) return undefined;
@@ -892,6 +900,36 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
               }}
             >
               Continue to enrollment
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Program Confirmation Modal */}
+      <div className={`modal-bg ${showProgramConfirm ? 'open' : ''}`} onClick={() => setShowProgramConfirm(false)}>
+        <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="modal-hdr">
+            <h3>Confirm Program</h3>
+            <button className="close-btn" onClick={() => setShowProgramConfirm(false)}><i className="ti ti-x" /></button>
+          </div>
+          <div className="modal-meta">
+            <p style={{ marginBottom: '16px', color: 'var(--text-2)' }}>
+              Please select the program for these students to ensure accurate data recording.
+            </p>
+            <div className="row">
+              <span>Program</span>
+              <select value={program} onChange={e => setProgram(e.target.value)} style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid rgba(128, 0, 32, 0.2)' }}>
+                <option value="">Select a program...</option>
+                <option value="BSCE">BSCE (Civil Engineering)</option>
+                <option value="BSCpE">BSCpE (Computer Engineering)</option>
+                <option value="BSGE">BSGE (Geomatics Engineering)</option>
+              </select>
+            </div>
+          </div>
+          <div className="modal-actions">
+            <button className="btn" onClick={() => setShowProgramConfirm(false)}>Cancel</button>
+            <button className="btn pri" disabled={!program} onClick={() => setShowProgramConfirm(false)}>
+              Continue
             </button>
           </div>
         </div>
