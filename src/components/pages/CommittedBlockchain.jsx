@@ -18,7 +18,12 @@ export default function CommittedBlockchain({ blocks = [], facultyRecords = [], 
     const filtered = selectedInstructor
       ? blocks.filter(block => block.prof === selectedInstructor)
       : blocks;
-    return [...filtered].sort((a, b) => Number(b.num) - Number(a.num));
+    return [...filtered].sort((a, b) => {
+      const timeA = Date.parse(a.time || '') || 0;
+      const timeB = Date.parse(b.time || '') || 0;
+      if (timeA !== timeB) return timeB - timeA;
+      return Number(b.num) - Number(a.num);
+    });
   }, [blocks, selectedInstructor]);
 
   const resolveName = (prof) => {

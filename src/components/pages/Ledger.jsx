@@ -3,6 +3,16 @@ import { ROLES } from '../../data/appData';
 import { HashDisplay, Notice } from '../Shared';
 
 export default function Ledger({ blocks }) {
+  const sortedBlocks = useMemo(() => {
+    if (!blocks || blocks.length === 0) return [];
+    return [...blocks].sort((a, b) => {
+      const timeA = Date.parse(a.time || '') || 0;
+      const timeB = Date.parse(b.time || '') || 0;
+      if (timeA !== timeB) return timeB - timeA;
+      return Number(b.num) - Number(a.num);
+    });
+  }, [blocks]);
+
   const verificationMap = useMemo(() => {
     const map = new Map();
     
@@ -40,7 +50,7 @@ export default function Ledger({ blocks }) {
         including the Dean or system administrators. This guarantees tamper-proof academic records.
       </Notice>
       <div className="block-chain">
-        {[...blocks].reverse().map(b => {
+        {sortedBlocks.map(b => {
           const verified = verificationMap.get(`${b.num}-${b.hash}`);
           const instructorName = ROLES[b.prof]?.name || b.prof || 'Instructor';
           return (
