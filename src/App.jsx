@@ -747,6 +747,12 @@ export default function App() {
     if (authUser) {
       try {
         // Update all students with their grades. If any upsert fails, throw so the whole commit aborts.
+        // Helper to parse grade safely (0 is a valid grade)
+        const parseGrade = (val) => {
+          const parsed = parseInt(val, 10);
+          return Number.isFinite(parsed) ? parsed : null;
+        };
+        
         await Promise.all(Object.entries(gradeValues).map(async ([studentId, vals]) => {
           if (!vals) return Promise.resolve();
           const student = students.find(s => s.id === studentId && s.prof === authUser.email);
@@ -754,10 +760,10 @@ export default function App() {
           const res = await upsertStudent({
             ...student,
             prof: authUser.email,
-            prelim: parseInt(vals.prelim) || student.prelim,
-            midterm: parseInt(vals.midterm) || student.midterm,
-            semi: parseInt(vals.semi) || student.semi,
-            final: parseInt(vals.final) || student.final,
+            prelim: parseGrade(vals.prelim) ?? student.prelim,
+            midterm: parseGrade(vals.midterm) ?? student.midterm,
+            semi: parseGrade(vals.semi) ?? student.semi,
+            final: parseGrade(vals.final) ?? student.final,
             status: 'chain',
             upload_method: 'Uploaded (committed)',
           });
@@ -808,7 +814,9 @@ export default function App() {
         }
       } catch (error) {
         console.error('Failed to persist blockchain commit:', error);
-        throw error;
+        setModal(null); // Close any success modal if error occurs
+        const errorMsg = error?.message || error?.toString() || 'Failed to persist grades. Please try again.';
+        throw new Error(errorMsg); // Throw so Upload component can catch and display error
       }
 
       // Refresh logs for dean/admin to see the latest commits

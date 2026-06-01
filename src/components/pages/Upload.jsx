@@ -709,6 +709,16 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
             <Notice type="info" icon="ti-info-circle">
               📊 <strong>Large file support:</strong> Supports up to 50 MB files and 10,000+ rows. Processing large files may take a moment.
             </Notice>
+            {commitError && (
+              <Notice type="err" icon="ti-alert-circle">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span><strong>Commit failed:</strong> {commitError}</span>
+                  <button className="btn sm" onClick={onClearCommitError} style={{ marginLeft: '12px' }}>
+                    <i className="ti ti-x" /> Dismiss
+                  </button>
+                </div>
+              </Notice>
+            )}
             {gradeNotice && (
               <Notice type={gradeNotice.type} icon={gradeNotice.type === 'err' ? 'ti-alert-circle' : 'ti-check'}>
                 {gradeNotice.type === 'err'
