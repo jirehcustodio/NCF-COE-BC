@@ -365,6 +365,7 @@ create policy "students_insert" on public.students
     auth.jwt()->>'email' = prof
     OR auth.jwt()->'user_metadata'->>'role' = 'admin'
     OR auth.jwt()->'user_metadata'->>'role' = 'dean'
+    OR auth.jwt()->'user_metadata'->>'role' = 'instructor'
   );
 
 drop policy if exists "students_update" on public.students;
@@ -373,6 +374,7 @@ create policy "students_update" on public.students
     auth.jwt()->>'email' = prof
     OR auth.jwt()->'user_metadata'->>'role' = 'admin'
     OR auth.jwt()->'user_metadata'->>'role' = 'dean'
+    OR auth.jwt()->'user_metadata'->>'role' = 'instructor'
   );
 
 drop policy if exists "students_delete" on public.students;
