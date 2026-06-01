@@ -984,13 +984,15 @@ export default function App() {
           const roleType = ROLES[curRole]?.type;
           const canViewAll = roleType === 'dean' || roleType === 'admin';
           
-          // DEBUG: Log the filtering details
+          // DEBUG: Log the filtering details with MORE data
+          const uniqueProfs = new Set(studentsData.map(s => s.prof));
           console.log('DEBUG handleEnroll refresh:', {
             totalFetched: studentsData.length,
             instructorKey,
             canViewAll,
             roleType,
-            sampleStudentProfs: studentsData.slice(0, 3).map(s => ({ id: s.id, prof: s.prof })),
+            uniqueProfsInDB: Array.from(uniqueProfs),
+            sampleStudentProfs: studentsData.slice(0, 5).map(s => ({ id: s.id, prof: s.prof, name: s.name })),
           });
           
           if (canViewAll) {
@@ -1001,6 +1003,8 @@ export default function App() {
               before: studentsData.length,
               after: filtered.length,
               newlyEnrolled: uniqueStudents.map(s => ({ id: s.id, name: s.name })),
+              instructorKeyValue: instructorKey,
+              comparison: `Looking for prof === "${instructorKey}", found ${filtered.length} matches`,
             });
             setStudents(filtered);
           }
