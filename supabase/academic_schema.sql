@@ -318,11 +318,19 @@ create policy "students_read" on public.students
 
 drop policy if exists "students_insert" on public.students;
 create policy "students_insert" on public.students
-  for insert with check (auth.jwt()->>'email' = prof);
+  for insert with check (
+    auth.jwt()->>'email' = prof
+    OR auth.jwt()->'user_metadata'->>'role' = 'admin'
+    OR auth.jwt()->'user_metadata'->>'role' = 'dean'
+  );
 
 drop policy if exists "students_update" on public.students;
 create policy "students_update" on public.students
-  for update using (auth.jwt()->>'email' = prof);
+  for update using (
+    auth.jwt()->>'email' = prof
+    OR auth.jwt()->'user_metadata'->>'role' = 'admin'
+    OR auth.jwt()->'user_metadata'->>'role' = 'dean'
+  );
 
 drop policy if exists "students_delete" on public.students;
 create policy "students_delete" on public.students
