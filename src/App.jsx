@@ -966,16 +966,25 @@ export default function App() {
         });
       });
 
-      // Refresh students for dean/admin to see the latest enrollments
-      if (isActiveRef.current && (ROLES[curRole]?.type === 'dean' || ROLES[curRole]?.type === 'admin')) {
-        try {
-          const { data: refreshedStudents } = await fetchStudents();
-          if (refreshedStudents && isActiveRef.current) {
-            setStudents(Array.isArray(refreshedStudents) ? refreshedStudents : []);
+      // Wait a bit for students to persist, then refresh from database
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Refresh students to ensure enrollment is persisted
+      try {
+        const { data: refreshedStudents } = await fetchStudents();
+        if (refreshedStudents && isActiveRef.current) {
+          const studentsData = Array.isArray(refreshedStudents) ? refreshedStudents : [];
+          const instructorKey = authUser.email;
+          const roleType = ROLES[curRole]?.type;
+          const canViewAll = roleType === 'dean' || roleType === 'admin';
+          if (canViewAll) {
+            setStudents(studentsData);
+          } else {
+            setStudents(studentsData.filter(row => row.prof === instructorKey));
           }
-        } catch (err) {
-          console.warn('Failed to refresh students:', err);
         }
+      } catch (err) {
+        console.warn('Failed to refresh students after enrollment:', err);
       }
     }
     return { added: uniqueStudents.length, skipped: studentsToEnroll.length - uniqueStudents.length };
@@ -1052,7 +1061,11 @@ export default function App() {
       return updates.length ? [...prev, ...updates] : prev;
     });
     if (authUser) {
-      insertSubject({ code: normalized, prof: authUser.email, title: currSubject?.title || '' });
+      // Save subject to database
+      insertSubject({ code: normalized, prof: authUser.email, title: currSubject?.title || '' }).catch(err => 
+        console.warn('Failed to save subject to database:', err)
+      );
+      // Save grade sheets to database
       defaultPeriods.forEach(period => {
         insertGradeSheet({
           subject: normalized,
@@ -1060,7 +1073,7 @@ export default function App() {
           period,
           last_updated: null,
           status: 'Pending',
-        });
+        }).catch(err => console.warn('Failed to save grade sheet to database:', err));
       });
     }
   }
@@ -1130,34 +1143,64 @@ export default function App() {
     setLogs(prev => [newLog, ...prev]);
 
     if (authUser) {
-      updates.forEach(update => {
-        upsertStudent({
-          id: update.id,
-          name: update.name,
-          subj: update.subj,
-          prof,
-          prelim: update.prelim ?? null,
-          midterm: update.midterm ?? null,
-          semi: update.semi ?? null,
-          final: update.final ?? null,
-          status: update.status || 'ok',
-          upload_method: update.upload_method ?? 'Periodical',
-          encoded_at: now,
-          [periodKey]: update.grade,
-        });
-      });
-      insertLog(newLog);
+      try {
+        // Save all student grade updates to database
+        await Promise.all(updates.map(update =>
+          upsertStudent({
+            id: update.id,
+            name: update.name,
+            subj: update.subj,
+            prof,
+            prelim: update.prelim ?? null,
+            midterm: update.midterm ?? null,
+            semi: update.semi ?? null,
+            final: update.final ?? null,
+            status: update.status || 'ok',
+            upload_method: update.upload_method ?? 'Periodical',
+            encoded_at: now,
+            [periodKey]: update.grade,
+          })
+        ));
 
-      // Refresh grade sheets for dean to see updated status
-      if (isActiveRef.current && (ROLES[curRole]?.type === 'dean' || ROLES[curRole]?.type === 'admin')) {
-        try {
-          const { data: refreshedSheets } = await fetchGradeSheets();
-          if (refreshedSheets && isActiveRef.current) {
-            setGradeSheets(Array.isArray(refreshedSheets) ? refreshedSheets : []);
+        // Save log entry to database
+        await insertLog(newLog);
+
+        // Refresh students from database to confirm persistence
+        if (isActiveRef.current) {
+          const { data: refreshedStudents } = await fetchStudents();
+          if (refreshedStudents && isActiveRef.current) {
+            const studentsData = Array.isArray(refreshedStudents) ? refreshedStudents : [];
+            const instructorKey = authUser.email;
+            const roleType = ROLES[curRole]?.type;
+            const canViewAll = roleType === 'dean' || roleType === 'admin';
+            if (canViewAll) {
+              setStudents(studentsData);
+            } else {
+              setStudents(studentsData.filter(row => row.prof === instructorKey));
+            }
           }
-        } catch (err) {
-          console.warn('Failed to refresh grade sheets:', err);
         }
+
+        // Refresh grade sheets and logs for dean/admin
+        if (isActiveRef.current && (ROLES[curRole]?.type === 'dean' || ROLES[curRole]?.type === 'admin')) {
+          try {
+            const [sheetsRes, logsRes] = await Promise.all([
+              fetchGradeSheets(),
+              fetchLogs(),
+            ]);
+            if (sheetsRes?.data && isActiveRef.current) {
+              setGradeSheets(Array.isArray(sheetsRes.data) ? sheetsRes.data : []);
+            }
+            if (logsRes?.data && isActiveRef.current) {
+              setLogs(Array.isArray(logsRes.data) ? logsRes.data : []);
+            }
+          } catch (err) {
+            console.warn('Failed to refresh grade sheets/logs:', err);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to save periodical grades:', err);
+        throw err;
       }
     }
     return nowLabel;
