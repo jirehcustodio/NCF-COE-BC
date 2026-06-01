@@ -983,10 +983,26 @@ export default function App() {
           const instructorKey = authUser.email;
           const roleType = ROLES[curRole]?.type;
           const canViewAll = roleType === 'dean' || roleType === 'admin';
+          
+          // DEBUG: Log the filtering details
+          console.log('DEBUG handleEnroll refresh:', {
+            totalFetched: studentsData.length,
+            instructorKey,
+            canViewAll,
+            roleType,
+            sampleStudentProfs: studentsData.slice(0, 3).map(s => ({ id: s.id, prof: s.prof })),
+          });
+          
           if (canViewAll) {
             setStudents(studentsData);
           } else {
-            setStudents(studentsData.filter(row => row.prof === instructorKey));
+            const filtered = studentsData.filter(row => row.prof === instructorKey);
+            console.log('DEBUG handleEnroll filtered:', {
+              before: studentsData.length,
+              after: filtered.length,
+              newlyEnrolled: uniqueStudents.map(s => ({ id: s.id, name: s.name })),
+            });
+            setStudents(filtered);
           }
         }
       } catch (err) {
