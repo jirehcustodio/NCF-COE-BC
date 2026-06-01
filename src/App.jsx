@@ -402,7 +402,7 @@ export default function App() {
       const normalize = (items) => Array.isArray(items) ? items : [];
   const studentsData = normalize(studentsRes.data).map(row => ({
     ...row,
-    uploadMethod: row.uploadMethod ?? row.upload_method,
+    uploadMethod: row.upload_method,
   }));
   const blocksData = normalize(blocksRes.data);
   const logsData = normalize(logsRes.data);
@@ -483,7 +483,7 @@ export default function App() {
             const normalize = (items) => Array.isArray(items) ? items : [];
             const studentsData = normalize(studentsRes.data).map(row => ({
               ...row,
-              uploadMethod: row.uploadMethod ?? row.upload_method,
+              uploadMethod: row.upload_method,
             }));
             const blocksData = normalize(blocksRes.data);
             const logsData = normalize(logsRes.data);
@@ -1120,7 +1120,7 @@ export default function App() {
           semi: update.semi ?? null,
           final: update.final ?? null,
           status: update.status || 'ok',
-          upload_method: update.uploadMethod ?? update.upload_method ?? 'Periodical',
+          upload_method: update.upload_method ?? 'Periodical',
           encoded_at: now,
           [periodKey]: update.grade,
         });
