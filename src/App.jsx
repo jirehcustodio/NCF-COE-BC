@@ -563,14 +563,13 @@ export default function App() {
         requireProfile={needsProfile}
         programOptions={programOptions}
         profileSaving={profileSaving}
-        profileDefaults={{ name: instructorProfile?.name || '', program: instructorProfile?.dept || '' }}
-        onSaveProfile={async ({ name, program }) => {
+        profileDefaults={{ name: instructorProfile?.name || '' }}
+        onSaveProfile={async ({ name }) => {
           if (!authUser?.email) return;
           setProfileSaving(true);
           const payload = {
             id: authUser.email,
             name,
-            dept: program,
             rank: 'Instructor',
             status: 'Active',
           };

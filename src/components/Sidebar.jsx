@@ -49,11 +49,6 @@ export default function Sidebar({
         <div>
           <div className="sb-name">{displayName}</div>
           <div className="sb-role">{rd.role}</div>
-          {rd.type === 'instructor' && program && (
-            <div className="sb-program">
-              <span className="badge info">Program: {program}</span>
-            </div>
-          )}
         </div>
       </div>
 

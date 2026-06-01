@@ -205,7 +205,6 @@ alter table public.section_students enable row level security;
 alter table public.enrollment_records enable row level security;
 alter table public.grade_sheets enable row level security;
 alter table public.blocks enable row level security;
-alter table public.grade_sheets enable row level security;
 alter table public.subjects enable row level security;
 alter table public.students enable row level security;
 alter table public.user_profiles enable row level security;

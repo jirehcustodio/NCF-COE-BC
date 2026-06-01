@@ -7,7 +7,7 @@ export default function Onboarding({
   roleType = 'instructor',
   requireProfile = false,
   programOptions = [],
-  profileDefaults = { name: '', program: '' },
+  profileDefaults = { name: '' },
   profileSaving = false,
   onSaveProfile,
   onFinish,
@@ -16,7 +16,6 @@ export default function Onboarding({
   const [step, setStep] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
   const [profileName, setProfileName] = useState(profileDefaults.name || '');
-  const [profileProgram, setProfileProgram] = useState(profileDefaults.program || '');
   const [profileError, setProfileError] = useState('');
 
   const slides = useMemo(() => {
@@ -83,7 +82,7 @@ export default function Onboarding({
           <>
             <div className="onboard-icon"><i className="ti ti-id" /></div>
             <h2>Instructor profile</h2>
-            <p>Tell us which program you handle so the dean can recognize your subject list.</p>
+            <p>Tell us your name so we can recognize your submissions.</p>
             <div className="form-grid" style={{ marginTop: 18 }}>
               <div className="fg">
                 <label>Full name</label>
@@ -92,18 +91,6 @@ export default function Onboarding({
                   placeholder="Cecille Roja"
                   onChange={event => setProfileName(event.target.value)}
                 />
-              </div>
-              <div className="fg">
-                <label>Program handled</label>
-                <select
-                  value={profileProgram}
-                  onChange={event => setProfileProgram(event.target.value)}
-                >
-                  <option value="">Select program</option>
-                  {programOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
               </div>
             </div>
             {profileError && <div className="landing-error" style={{ marginTop: 12 }}>{profileError}</div>}
@@ -152,13 +139,9 @@ export default function Onboarding({
                     setProfileError('Please enter your full name.');
                     return;
                   }
-                  if (!profileProgram) {
-                    setProfileError('Please select the program you handle.');
-                    return;
-                  }
                   setProfileError('');
                   if (onSaveProfile) {
-                    await onSaveProfile({ name: trimmedName, program: profileProgram });
+                    await onSaveProfile({ name: trimmedName });
                   }
                   onFinish();
                   return;
