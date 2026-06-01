@@ -763,6 +763,7 @@ export default function App() {
       prev: blocks.length > 0 ? blocks[blocks.length - 1]?.hash : '0x0000...0000',
       time: now, prof: profKey,
       subj: subjCode, period, count: gradesCount,
+      status: 'committed',
     };
     setBlocks(prev => [...prev, newBlock]);
 
