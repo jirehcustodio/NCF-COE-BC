@@ -41,7 +41,9 @@ export default function MyStudents({ students, curRole, profKey, program = '', s
 
   // Calculate average grade and determine pass/fail
   function calculateAverage(student) {
-    const grades = [student.prelim, student.midterm, student.semi, student.final].filter(g => g !== undefined && g !== null && g !== '');
+    const grades = [student.prelim, student.midterm, student.semi, student.final]
+      .map(g => (g === '' || g === undefined || g === null ? null : Number(g)))
+      .filter(g => Number.isFinite(g));
     if (grades.length === 0) return null;
     return (grades.reduce((a, b) => a + b, 0) / grades.length).toFixed(2);
   }

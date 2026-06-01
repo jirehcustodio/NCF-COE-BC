@@ -922,7 +922,7 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
                 <option value="">Select a program...</option>
                 <option value="BSCE">BSCE (Civil Engineering)</option>
                 <option value="BSCpE">BSCpE (Computer Engineering)</option>
-                <option value="BSGE">BSGE (Geomatics Engineering)</option>
+                <option value="BSGE">BSGE (Geodetic Engineering)</option>
               </select>
             </div>
           </div>

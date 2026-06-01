@@ -713,8 +713,12 @@ export default function App() {
   }
 
   /* ---- Navigation ---- */
-  function handleNavigate(page) {
+  async function handleNavigate(page) {
     setActivePage(page);
+    if (!authUser || showLanding) return;
+    if (['ledger', 'committed', 'allgrades', 'mychain', 'activitylog', 'mysubmissions'].includes(page)) {
+      await loadData();
+    }
   }
 
   /* ---- Blockchain commit (from Upload page) ---- */
