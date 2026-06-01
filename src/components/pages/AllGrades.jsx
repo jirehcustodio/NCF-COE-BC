@@ -22,7 +22,7 @@ export default function AllGrades({ students, facultyRecords = [], blocks = [] }
     [students]
   );
   const programs = useMemo(() => {
-    const fromStudents = students.map(s => s.dept).filter(Boolean);
+    const fromStudents = students.map(s => s.program).filter(Boolean);
     const fromFaculty = facultyRecords.map(r => r.dept).filter(Boolean);
     return Array.from(new Set([...fromStudents, ...fromFaculty]));
   }, [students, facultyRecords]);
@@ -37,14 +37,6 @@ export default function AllGrades({ students, facultyRecords = [], blocks = [] }
     return map;
   }, [blocks]);
 
-  const programByInstructor = useMemo(() => {
-    const map = new Map();
-    facultyRecords.forEach(record => {
-      if (record.id) map.set(record.id, record.dept);
-    });
-    return map;
-  }, [facultyRecords]);
-
   const filtered = students.filter(s => {
     const name = (s.name || '').toLowerCase();
     const id = (s.id || '').toLowerCase();
@@ -52,8 +44,8 @@ export default function AllGrades({ students, facultyRecords = [], blocks = [] }
     const matchesProf = !prof || s.prof === prof;
     const matchesSubj = !subj || s.subj === subj;
     const matchesStat = !stat || s.status === stat;
-    const recordProgram = s.dept || programByInstructor.get(s.prof) || '';
-    const matchesProgram = !program || recordProgram === program;
+    const studentProgram = s.program || '';
+    const matchesProgram = !program || studentProgram === program;
     return matchesQuery && matchesProf && matchesSubj && matchesStat && matchesProgram;
   });
 
