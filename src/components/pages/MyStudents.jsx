@@ -5,6 +5,20 @@ import { StatusBadge, Notice } from '../Shared';
 export default function MyStudents({ students, curRole, profKey, program = '', subjects = [], onNavigate, onDeleteStudent, onRefresh, refreshing = false, allowDelete = false }) {
   const activeProf = profKey || curRole;
   const myS = students.filter(s => s.prof === activeProf);
+  
+  // DEBUG: Log filtering details
+  React.useEffect(() => {
+    if (students.length > 0) {
+      console.log('DEBUG MyStudents filter:', {
+        activeProf,
+        profKey,
+        curRole,
+        totalStudents: students.length,
+        filteredStudents: myS.length,
+        sampleStudentProfs: students.slice(0, 3).map(s => ({ id: s.id, prof: s.prof })),
+      });
+    }
+  }, [students, activeProf]);
   const rd  = ROLES[curRole];
   const [showDelete, setShowDelete] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
