@@ -763,9 +763,12 @@ export default function App() {
     }));
 
     // Add new block with correct count of students with grades
+    // Find the last block from THIS instructor to chain properly
+    const myPreviousBlocks = blocks.filter(b => b.prof === profKey).sort((a, b) => Number(a.num) - Number(b.num));
+    const myLastBlock = myPreviousBlocks.length > 0 ? myPreviousBlocks[myPreviousBlocks.length - 1] : null;
     const newBlock = {
       num: nextBlock, hash,
-      prev: blocks.length > 0 ? blocks[blocks.length - 1]?.hash : '0x0000...0000',
+      prev: myLastBlock ? myLastBlock.hash : '0x0000...0000',
       time: nowIso, prof: profKey,
       subj: subjCode, period, count: gradesCount,
     };

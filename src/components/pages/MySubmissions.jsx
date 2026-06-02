@@ -4,6 +4,23 @@
 import React from 'react';
 import { Notice, LogEntry, EmptyState, HashDisplay } from '../Shared';
 
+// Convert ISO timestamp to Philippines time (UTC+8)
+function formatPhilippinesTime(isoString) {
+  if (!isoString) return '—';
+  const date = new Date(isoString);
+  // Format: "Jun 2, 2026, 12:02 PM (UTC+8)"
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  }).format(date) + ' (UTC+8)';
+}
+
 export function MySubmissions({ logs, curRole, profKey }) {
   const activeProf = profKey || curRole;
   const myLogs = logs.filter(l => l.prof === activeProf);
@@ -71,7 +88,7 @@ export function MyChain({ blocks, curRole, profKey }) {
               <div className="block-meta">
                 <div><span>Students: </span>{b.count}</div>
                 <div><span>Period: </span>{b.period}</div>
-                <div><span>Committed: </span>{b.time}</div>
+                <div><span>Committed: </span>{formatPhilippinesTime(b.time)}</div>
               </div>
             </div>
           ))}
