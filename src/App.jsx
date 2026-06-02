@@ -422,7 +422,9 @@ export default function App() {
       } else {
         setStudents(studentsData.filter(row => row.prof === instructorKey));
         if (!hasBlocksError) {
-          setBlocks(blocksData.filter(row => row.prof === instructorKey));
+          // For instructors: show all blocks so they see the full chain including their own commits
+          // The Ledger and CommittedBlockchain pages handle filtering by role as needed
+          setBlocks(blocksData);
         }
         setLogs(logsData.filter(row => row.prof === instructorKey));
         setSubjects(subjectsData.filter(row => row.prof === instructorKey));
@@ -766,7 +768,6 @@ export default function App() {
       prev: blocks.length > 0 ? blocks[blocks.length - 1]?.hash : '0x0000...0000',
       time: nowIso, prof: profKey,
       subj: subjCode, period, count: gradesCount,
-      status: 'committed',
     };
     setBlocks(prev => [...prev, newBlock]);
 
