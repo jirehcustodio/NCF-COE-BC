@@ -84,6 +84,16 @@ export async function fetchBlocks() {
   return supabase.from('blocks').select('*').order('num', { ascending: false });
 }
 
+export async function fetchLastBlockForProf(profEmail) {
+  return supabase
+    .from('blocks')
+    .select('*')
+    .eq('prof', profEmail)
+    .order('num', { ascending: false })
+    .limit(1)
+    .single();
+}
+
 export async function insertBlock(payload) {
   return supabase.from('blocks').insert(payload).select('*');
 }

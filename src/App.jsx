@@ -18,6 +18,7 @@ import {
 import { isSupabaseConfigured, supabase } from './lib/supabaseClient';
 import {
   fetchBlocks,
+  fetchLastBlockForProf,
   fetchCurriculumSubjects,
   fetchEnrollmentRecords,
   fetchFacultyRecords,
@@ -767,12 +768,13 @@ export default function App() {
     }));
 
     // Add new block with correct count of students with grades
-    // Find the last block from THIS instructor to chain properly
-    const myPreviousBlocks = blocks.filter(b => b.prof === profKey).sort((a, b) => Number(a.num) - Number(b.num));
-    const myLastBlock = myPreviousBlocks.length > 0 ? myPreviousBlocks[myPreviousBlocks.length - 1] : null;
+    // Query database for THIS instructor's latest block to ensure chain accuracy
+    // (Don't use stale local state which could miss concurrent commits)
+    const { data: lastBlockData, error: lastBlockError } = await fetchLastBlockForProf(profKey);
+    const myLastBlock = lastBlockError ? null : lastBlockData;
     const newBlock = {
       num: nextBlock, hash,
-      prev: myLastBlock ? myLastBlock.hash : '0x0000...0000',
+      prev: myLastBlock?.hash ? myLastBlock.hash : '0x0000...0000',
       time: nowIso, prof: profKey,
       subj: subjCode, period, count: gradesCount,
     };
