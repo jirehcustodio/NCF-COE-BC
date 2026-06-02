@@ -457,7 +457,11 @@ export default function App() {
           await handleLogout();
           return;
         }
-        if (!profile) setShowOnboarding(true);
+        // Only show onboarding if the user hasn't already seen it (respects localStorage flag)
+        // Don't force it on every loadData() call, even if profile doesn't exist
+        if (!profile && !safeGetStorage(`onboarding_seen_${authUser.id}`)) {
+          setShowOnboarding(true);
+        }
       }
     } catch (error) {
       console.error('Failed to load initial data:', error);
