@@ -50,6 +50,8 @@ export function MySubmissions({ logs, curRole, profKey }) {
 export function MyChain({ blocks, curRole, profKey }) {
   const activeProf = profKey || curRole;
   const myBlocks = blocks.filter(b => b.prof === activeProf);
+  const [sortOrder, setSortOrder] = React.useState('descending'); // newest first by default
+  
   const verificationMap = React.useMemo(() => {
     const ordered = [...myBlocks].sort((a, b) => Number(a.num) - Number(b.num));
     const map = new Map();
@@ -63,6 +65,16 @@ export function MyChain({ blocks, curRole, profKey }) {
     });
     return map;
   }, [myBlocks]);
+
+  const sortedBlocks = React.useMemo(() => {
+    const sorted = [...myBlocks].sort((a, b) => {
+      const numA = Number(a.num) || 0;
+      const numB = Number(b.num) || 0;
+      return sortOrder === 'descending' ? numB - numA : numA - numB;
+    });
+    return sorted;
+  }, [myBlocks, sortOrder]);
+
   return (
     <>
       <div className="ph">
@@ -73,26 +85,39 @@ export function MyChain({ blocks, curRole, profKey }) {
         These records are permanently immutable. Other instructors cannot view your chain entries.
       </Notice>
       {myBlocks.length > 0 ? (
-        <div className="block-chain">
-          {[...myBlocks].reverse().map(b => (
-            <div className="bb" key={b.num}>
-              <div className="bh">
-                <span className="bnum">Block #{b.num} — {b.subj} {b.period}</span>
-                <span className={`badge ${verificationMap.get(`${b.num}-${b.hash}`) ? 'ok' : 'pend'}`}>
-                  <i className={`ti ${verificationMap.get(`${b.num}-${b.hash}`) ? 'ti-shield-check' : 'ti-clock'}`} />
-                  {verificationMap.get(`${b.num}-${b.hash}`) ? 'Verified' : 'Pending'}
-                </span>
+        <>
+          <div style={{ marginBottom: '12px', padding: '0 0 12px', borderBottom: '1px solid rgba(128, 0, 32, 0.12)' }}>
+            <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text)', marginRight: '12px' }}>Sort by Block Number:</label>
+            <select 
+              value={sortOrder} 
+              onChange={e => setSortOrder(e.target.value)} 
+              style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid rgba(128, 0, 32, 0.2)', fontSize: '13px' }}
+            >
+              <option value="descending">Newest First (Latest commits at top)</option>
+              <option value="ascending">Oldest First</option>
+            </select>
+          </div>
+          <div className="block-chain">
+            {sortedBlocks.map(b => (
+              <div className="bb" key={b.num}>
+                <div className="bh">
+                  <span className="bnum">Block #{b.num} — {b.subj} {b.period}</span>
+                  <span className={`badge ${verificationMap.get(`${b.num}-${b.hash}`) ? 'ok' : 'pend'}`}>
+                    <i className={`ti ${verificationMap.get(`${b.num}-${b.hash}`) ? 'ti-shield-check' : 'ti-clock'}`} />
+                    {verificationMap.get(`${b.num}-${b.hash}`) ? 'Verified' : 'Pending'}
+                  </span>
+                </div>
+                <HashDisplay label="Block Hash" value={b.hash} />
+                <HashDisplay label="Previous Hash" value={b.prev} />
+                <div className="block-meta">
+                  <div><span>Students: </span>{b.count}</div>
+                  <div><span>Period: </span>{b.period}</div>
+                  <div><span>Committed: </span>{formatPhilippinesTime(b.time)}</div>
+                </div>
               </div>
-              <HashDisplay label="Block Hash" value={b.hash} />
-              <HashDisplay label="Previous Hash" value={b.prev} />
-              <div className="block-meta">
-                <div><span>Students: </span>{b.count}</div>
-                <div><span>Period: </span>{b.period}</div>
-                <div><span>Committed: </span>{formatPhilippinesTime(b.time)}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       ) : (
         <EmptyState icon="ti-link-off">
           No blockchain commits yet. Upload and commit a grade sheet to create your first block.

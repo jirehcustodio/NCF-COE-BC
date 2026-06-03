@@ -44,7 +44,8 @@ export default function MyStudents({ students, curRole, profKey, program = '', s
     const grades = [student.prelim, student.midterm, student.semi, student.final]
       .map(g => (g === '' || g === undefined || g === null ? null : Number(g)))
       .filter(g => Number.isFinite(g));
-    if (grades.length === 0) return null;
+    // Only show average if ALL four periods have grades
+    if (grades.length !== 4) return null;
     return (grades.reduce((a, b) => a + b, 0) / grades.length).toFixed(2);
   }
 

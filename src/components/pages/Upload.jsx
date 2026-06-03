@@ -512,6 +512,7 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
           midterm: existing.midterm ?? s.midterm ?? null,
           semi: existing.semi ?? s.semi ?? null,
           final: existing.final ?? s.final ?? null,
+          remark: existing.remark ?? '', // Initialize remark field
         };
       });
 
@@ -817,7 +818,7 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
                     <thead>
                       <tr>
                         <th>Student ID</th><th>Name</th>
-                        <th>Prelim</th><th>Midterm</th><th>Semi-Final</th><th>Final</th>
+                        <th>Prelim</th><th>Midterm</th><th>Semi-Final</th><th>Final</th><th>Remark</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -835,6 +836,20 @@ export default function Upload({ students, subjects = [], profKey, curRole, onCo
                               />
                             </td>
                           ))}
+                          <td>
+                            <select
+                              className="grade-input"
+                              value={gradeValues[s.id]?.remark ?? ''}
+                              onChange={e => handleGradeChange(s.id, 'remark', e.target.value)}
+                              style={{ padding: '4px 6px', fontSize: '13px' }}
+                            >
+                              <option value="">—</option>
+                              <option value="DEA">DEA (Died/Excused Absence)</option>
+                              <option value="INC">INC (Incomplete)</option>
+                              <option value="IP">IP (In Progress)</option>
+                              <option value="DO">DO (Dropped Out)</option>
+                            </select>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
