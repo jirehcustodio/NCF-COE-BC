@@ -34,9 +34,37 @@ export default function MyStudents({ students, curRole, profKey, program = '', s
     return map;
   }, [curriculumSubjects]);
 
+  const semesterYearMap = useMemo(() => {
+    const map = {};
+    curriculumSubjects.forEach(subject => {
+      const code = String(subject.code || '').trim().toLowerCase();
+      if (code) {
+        map[code] = {
+          year: subject.year || '',
+          semester: subject.semester || '',
+        };
+      }
+    });
+    return map;
+  }, [curriculumSubjects]);
+
   const getProgramForSubject = (subject) => {
     const key = String(subject || '').trim().toLowerCase();
     return programMap[key] || '';
+  };
+
+  const getSemesterYearForSubject = (subject) => {
+    const key = String(subject || '').trim().toLowerCase();
+    return semesterYearMap[key] || { year: '', semester: '' };
+  };
+
+  const formatSemesterYear = (semesterYearInfo) => {
+    const { year, semester } = semesterYearInfo;
+    if (!year && !semester) return '—';
+    const parts = [];
+    if (semester) parts.push(semester);
+    if (year) parts.push(year);
+    return parts.join(' ');
   };
 
   // Calculate average grade and determine pass/fail
@@ -163,7 +191,7 @@ export default function MyStudents({ students, curRole, profKey, program = '', s
           <table>
             <thead>
               <tr>
-                <th>Student ID</th><th>Name</th><th>Subject</th><th>Program</th>
+                <th>Student ID</th><th>Name</th><th>Subject</th><th>Program</th><th>Semester</th>
                 <th>Pre.</th><th>Mid.</th><th>Semi</th><th>Fin.</th><th>Average</th><th>Remarks</th><th>Status</th>
                 {allowDelete && <th />}
               </tr>
@@ -173,6 +201,7 @@ export default function MyStudents({ students, curRole, profKey, program = '', s
                 const avg = calculateAverage(s);
                 const remarks = getRemarks(avg);
                 const avgColor = getAverageColor(avg);
+                const semesterYear = getSemesterYearForSubject(s.subj);
                 return (
                   <tr key={`${s.id}-${s.subj}`}>
                     <td className="hash">{s.id}</td>
@@ -184,6 +213,13 @@ export default function MyStudents({ students, curRole, profKey, program = '', s
                       {getProgramForSubject(s.subj) ? (
                         <span className="badge info">{getProgramForSubject(s.subj)}</span>
                       ) : '—'}
+                    </td>
+                    <td style={{ fontSize: '12px', fontWeight: '500' }}>
+                      {formatSemesterYear(semesterYear) && (
+                        <span className="badge" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+                          {formatSemesterYear(semesterYear)}
+                        </span>
+                      )}
                     </td>
                     <td>{s.prelim  ?? '—'}</td>
                     <td>{s.midterm ?? '—'}</td>
