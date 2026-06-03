@@ -127,8 +127,11 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
   const [missingIds, setMissingIds] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [showProgramModal, setShowProgramModal] = useState(false);
+  const [showSemesterModal, setShowSemesterModal] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState('');
   const [selectedSubject, setSelectedSubject] = useState(initialSubject);
+  const [selectedSemester, setSelectedSemester] = useState('1st');
+  const [selectedYear, setSelectedYear] = useState('2026-2027');
   const [subjectSearch, setSubjectSearch] = useState('');
   const [enrollNotice, setEnrollNotice] = useState(null);
   const [manualStudent, setManualStudent] = useState({ id: '', name: '', program: '' });
@@ -303,6 +306,19 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
       return;
     }
     
+    // Show semester/year modal before confirming enrollment
+    setShowSemesterModal(true);
+  }
+
+  async function confirmSemesterAndEnroll() {
+    if (!selectedSubject) {
+      setEnrollNotice({
+        type: 'warn',
+        message: 'Please select a subject to enroll students.',
+      });
+      return;
+    }
+    
     // Get the full subject info
     const subjectInfo = subjectOptions.find(s => s.code === selectedSubject);
     const subject = selectedSubject || 'Unspecified';
@@ -313,6 +329,8 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
         ...student,
         id,
         subject,
+        semester: selectedSemester,
+        year: selectedYear,
       };
     });
     
@@ -333,7 +351,7 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
             userAgent: navigator.userAgent,
             action: 'Enrollment',
             time: new Date().toISOString(),
-            desc: `${result.added} student(s) enrolled in ${subjectInfo?.fullName || subject}`,
+            desc: `${result.added} student(s) enrolled in ${subjectInfo?.fullName || subject} (${selectedSemester} ${selectedYear})`,
             ipAddress: 'IP detection in audit trail',
             device: 'Browser Session',
           };
@@ -352,9 +370,10 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
         setEnrollNotice({ type: 'suc', message: `${result.added} student(s) enrolled in ${subjectInfo?.fullName || subject}.` });
       }
       
-      // Wait a bit for state to sync before closing modal
+      // Wait a bit for state to sync before closing modals
       await new Promise(resolve => setTimeout(resolve, 300));
       
+      setShowSemesterModal(false);
       setShowModal(false);
       setStagedStudents([]);
       localStorage.removeItem('enrollStagedStudents');
@@ -567,6 +586,42 @@ export default function EnrollStudent({ curRole, onEnroll, subjects = [], curric
           <div className="modal-actions">
             <button className="btn" onClick={() => setShowModal(false)}>Cancel</button>
             <button className="btn pri" onClick={confirmEnrollment} disabled={!subjectOptions.length}>
+              Confirm enrollment
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className={`modal-bg ${showSemesterModal ? 'open' : ''}`} onClick={() => setShowSemesterModal(false)}>
+        <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="modal-hdr">
+            <h3>Set Enrollment Details</h3>
+            <button className="close-btn" onClick={() => setShowSemesterModal(false)}><i className="ti ti-x" /></button>
+          </div>
+          <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 16 }}>
+            Select the semester and academic year for these {stagedStudents.length} student(s).
+          </p>
+          <div className="form-grid">
+            <div className="fg">
+              <label>Semester</label>
+              <select value={selectedSemester} onChange={e => setSelectedSemester(e.target.value)}>
+                <option value="1st">1st Semester</option>
+                <option value="2nd">2nd Semester</option>
+              </select>
+            </div>
+            <div className="fg">
+              <label>Academic Year</label>
+              <input
+                type="text"
+                placeholder="e.g., 2026-2027"
+                value={selectedYear}
+                onChange={e => setSelectedYear(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="modal-actions">
+            <button className="btn" onClick={() => setShowSemesterModal(false)}>Cancel</button>
+            <button className="btn pri" onClick={confirmSemesterAndEnroll}>
               Confirm enrollment
             </button>
           </div>

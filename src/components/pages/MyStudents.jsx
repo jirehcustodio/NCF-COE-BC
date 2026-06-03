@@ -61,10 +61,34 @@ export default function MyStudents({ students, curRole, profKey, program = '', s
   const formatSemesterYear = (semesterYearInfo) => {
     const { year, semester } = semesterYearInfo;
     if (!year && !semester) return '—';
+    
+    // Extract year components (e.g., "2026-2027" → get first year "2026")
+    const yearMatch = String(year || '').match(/^\d{4}/);
+    const baseYear = yearMatch ? yearMatch[0] : year;
+    
+    // Parse semester to ordinal (1st, 2nd)
+    const semesterOrdinal = semester === '2nd' ? '2nd' : '1st';
+    
+    // Create label like "1st Year, 1st Semester" or "2nd Year, 2nd Semester"
     const parts = [];
-    if (semester) parts.push(semester);
-    if (year) parts.push(year);
-    return parts.join(' ');
+    if (baseYear) {
+      // Determine year level: if starts with current year, it's 1st year; older is higher year
+      const currentYear = new Date().getFullYear();
+      const enrollmentYear = parseInt(baseYear, 10);
+      const yearLevel = currentYear - enrollmentYear + 1;
+      parts.push(`${yearLevel}${getOrdinal(yearLevel)} Year`);
+    }
+    if (semester) {
+      parts.push(`${semesterOrdinal} Semester`);
+    }
+    return parts.join(', ');
+  };
+
+  function getOrdinal(num) {
+    if (num % 10 === 1 && num % 100 !== 11) return 'st';
+    if (num % 10 === 2 && num % 100 !== 12) return 'nd';
+    if (num % 10 === 3 && num % 100 !== 13) return 'rd';
+    return 'th';
   };
 
   // Calculate average grade and determine pass/fail
